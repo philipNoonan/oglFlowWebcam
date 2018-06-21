@@ -26,7 +26,7 @@ void searchForMedia()
 	videosFromFile.resize(0);
 	imagesFromFile.resize(0);
 
-	//cv::String pathVideos("videos/*.wmv"); //select only jpg
+	//cv::String pathVideos("videos/*.wmv"); //select only wmv
 	cv::String pathVideos("videos/*.mkv"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
@@ -102,279 +102,6 @@ void resetFlowSize()
 	changedSource = false;
 }
 
-void dlibInit()
-{
-	faceDetector = dlib::get_frontal_face_detector();
-	dlib::deserialize(faceShapePredictor) >> sp;
-}
-
-void getDlibFaces()
-{
-	// inputs color mat and current body pose plus flow vector
-	// get a cropped rect
-	// affine warp rect to vertical
-	// detect face
-	while (m_dlib_status)
-	{
-		if (!m_useOPFace)
-		{
-			cv::Mat_ <uchar> intensity, intensityPyr, intensityROI;// , intensityLowRes;
-			mtx_dlib.lock();
-			cv::cvtColor(newcol, intensity, CV_RGBA2GRAY);
-			mtx_dlib.unlock();
-
-			float faceRectSize = 300.0f;
-			float topLeftX, topLeftY;
-			float offsetX, offsetY;
-			// neck joint is from 0 - 1 this defines up
-
-			if (detectedKeyPointsPose.size() > 0 && detectedKeyPointsPose[0].size[1] > 0)
-			{
-				//mtx_dlib.lock();
-				topLeftX = detectedKeyPointsPose[0].at<float>(0, 0, 0); // x (1 === nose point?)
-				topLeftY = detectedKeyPointsPose[0].at<float>(0, 0, 1); // y
-
-				topLeftX = topLeftX - (faceRectSize / 2) < 0 ? (faceRectSize / 2) : topLeftX;
-				topLeftX = topLeftX + (faceRectSize / 2) > intensity.cols - 1 ? intensity.cols - 1 - (faceRectSize / 2) : topLeftX;
-
-				topLeftY = topLeftY - (faceRectSize / 2) < 0 ? (faceRectSize / 2) : topLeftY;
-				topLeftY = topLeftY + (faceRectSize / 2) > intensity.rows - 1 ? intensity.rows - 1 - (faceRectSize / 2) : topLeftY;
-				//mtx_dlib.unlock();
-				//cv::imshow("rec", intensity(cv::Rect(topLeftX - (faceRectSize / 2), topLeftY - (faceRectSize / 2), faceRectSize, faceRectSize)));
-				//cv::waitKey(1);
-				intensityROI = intensity(cv::Rect(topLeftX - (faceRectSize / 2), topLeftY - (faceRectSize / 2), faceRectSize, faceRectSize));
-				cv::pyrDown(intensityROI, intensityPyr);
-				offsetX = topLeftX - (faceRectSize / 2);
-				offsetY = topLeftY - (faceRectSize / 2);
-			}
-			else
-			{
-				cv::pyrDown(intensity, intensityPyr);
-				offsetX = 0;
-				offsetY = 0;
-			}
-
-			//std::cout << offsetX << " " << offsetY << std::endl;
-			//cv::resize(intensity, intensityPyr, cv::Size(960, 540));
-			//cv::pyrDown(intensity, intensityPyr);
-			//newColor.copyTo(intensity);
-
-			cv::imshow("IR", intensityPyr);
-			cv::waitKey(1);
-			dlib::cv_image<uchar> cimg;
-	
-			cimg = intensityPyr;
-			
-
-
-			std::vector<dlib::rectangle> face_detections = faceDetector(cimg, -0.1);
-
-			std::vector<dlib::full_object_detection> shapes;
-
-
-			//win.clear_overlay();
-			//win.set_image(cimg);
-
-			for (unsigned long j = 0; j < face_detections.size(); ++j)
-			{
-				dlib::full_object_detection shape = sp(cimg, face_detections[j]);
-
-				// You get the idea, you can get all the face part locations if
-				// you want them.  Here we just store them in shapes so we can
-				// put them on the screen.
-				shapes.push_back(shape);
-
-				//win.add_overlay(render_face_detections(shapes));
-
-				//std::cout << shape.part(0).x() << " " << shape.part(0).y() << std::endl;
-
-				//dlib::array<dlib::array2d<dlib::rgb_pixel> > face_chips;
-				//extract_image_chips(cimg, get_face_chip_details(shapes), face_chips);
-				//win_faces.set_image(tile_images(face_chips));
-
-				std::vector<float> personFace;
-				personFace.resize(shapes[0].num_parts() * 3);
-				for (int i = 0; i < shapes[0].num_parts() * 3; i += 3)
-				{
-					personFace[i] = 2 * shapes[0].part(i / 3).x() + offsetX; // x
-					personFace[i + 1] = 2 * shapes[0].part(i / 3).y() + offsetY; // x
-					personFace[i + 2] = 1.0f; // y
-				}
-				grender.setFacesPoints(personFace);
-
-			}
-
-			mtx_dlib.lock();
-			m_wipeFlowFlag = true;
-			//m_shapes = shapes;
-			mtx_dlib.unlock();
-
-		}
-// sleep for a bit?
-
-
-	}
-	
-
-
-
-}
-
-void getOPose()
-{
-	// OPENPOSE STUFF
-	//OpenPoseWrapper OP{ cv::Size(320,240), cv::Size(240,240), cv::Size(960,540), "MPI", "resources/", 0, false, OpenPoseWrapper::ScaleMode::PlusMinusOne, true, true };
-	
-	op::log("OpenPose Starting.", op::Priority::High);
-	// ------------------------- INITIALIZATION -------------------------
-	// Step 1 - Set logging level
-	// - 0 will output all the logging messages
-	// - 255 will output nothing
-	op::check(0 <= FLAGS_logging_level && FLAGS_logging_level <= 255, "Wrong logging_level value.",
-		__LINE__, __FUNCTION__, __FILE__);
-	op::ConfigureLog::setPriorityThreshold((op::Priority)FLAGS_logging_level);
-	op::log("", op::Priority::Low, __LINE__, __FUNCTION__, __FILE__);
-	// Step 2 - Read Google flags (user defined configuration)
-	// outputSize
-	const auto outputSize = op::flagsToPoint(FLAGS_output_resolution, "-1x-1");
-	// netInputSize
-	const auto netInputSize = op::flagsToPoint(FLAGS_net_resolution, "368x368");
-	// poseModel
-	const auto poseModel = op::flagsToPoseModel(FLAGS_model_pose);
-	// faceModel
-	const auto faceNetInputSize = op::flagsToPoint(FLAGS_face_net_resolution, "368x368 (multiples of 16)");
-	// faceModel
-	const auto handNetInputSize = op::flagsToPoint(FLAGS_hand_net_resolution, "368x368 (multiples of 16)");
-
-	// Check no contradictory flags enabled
-	if (FLAGS_alpha_pose < 0. || FLAGS_alpha_pose > 1.)
-		op::error("Alpha value for blending must be in the range [0,1].", __LINE__, __FUNCTION__, __FILE__);
-	if (FLAGS_scale_gap <= 0. && FLAGS_scale_number > 1)
-		op::error("Incompatible flag configuration: scale_gap must be greater than 0 or scale_number = 1.",
-			__LINE__, __FUNCTION__, __FILE__);
-	// Logging
-	op::log("", op::Priority::Low, __LINE__, __FUNCTION__, __FILE__);
-	// Step 3 - Initialize all required classes
-	op::ScaleAndSizeExtractor scaleAndSizeExtractor(netInputSize, outputSize, FLAGS_scale_number, FLAGS_scale_gap);
-	op::CvMatToOpInput cvMatToOpInput;
-	op::CvMatToOpOutput cvMatToOpOutput;
-	op::PoseExtractorCaffe poseExtractorCaffe{ poseModel, FLAGS_model_folder, FLAGS_num_gpu_start };
-	op::PoseCpuRenderer poseRenderer{ poseModel, (float)FLAGS_render_threshold, !FLAGS_disable_blending,
-		(float)FLAGS_alpha_pose };
-
-
-
-	op::FaceExtractorCaffe faceExtractor{ faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start };
-	op::FaceDetector faceDetector{ poseModel };
-	op::FaceCpuRenderer faceRenderer{ 0.4f };
-	faceExtractor.initializationOnThread();
-	faceRenderer.initializationOnThread();
-
-
-	op::HandExtractorCaffe handExtractor{ handNetInputSize, handNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start };
-	op::HandDetector handDetector{ poseModel };
-	op::HandCpuRenderer handRenderer{ 0.2f };
-
-
-	op::OpOutputToCvMat opOutputToCvMat;
-
-
-	poseExtractorCaffe.initializationOnThread();
-	poseRenderer.initializationOnThread();
-	
-
-
-	handExtractor.initializationOnThread();
-	handRenderer.initializationOnThread(); 
-
-
-
-
-
-	while (m_status == 1)
-	{
-		std::vector<cv::Mat> m_detectedKeyPointsPose;
-		std::vector<cv::Mat> m_detectedKeyPointsFace;
-		std::vector<cv::Mat> m_detectedKeyPointsHands;
-		cv::Mat inputImage, colRGBA, pyrDownImage;
-
-		mtx.lock();
-		col.copyTo(colRGBA); // DONT NEED TO COLOR CONVERT??
-
-		mtx.unlock();
-		cv::cvtColor(colRGBA, inputImage, cv::COLOR_RGBA2RGB);
-
-
-		if (inputImage.empty())
-			op::error("Could not open or find the image: " + FLAGS_image_path, __LINE__, __FUNCTION__, __FILE__);
-		const op::Point<int> imageSize{ inputImage.cols, inputImage.rows };
-		// Step 2 - Get desired scale sizes
-		std::vector<double> scaleInputToNetInputs;
-		std::vector<op::Point<int>> netInputSizes;
-		double scaleInputToOutput;
-		op::Point<int> outputResolution;
-		std::tie(scaleInputToNetInputs, netInputSizes, scaleInputToOutput, outputResolution)
-			= scaleAndSizeExtractor.extract(imageSize);
-		// Step 3 - Format input image to OpenPose input and output formats
-		const auto netInputArray = cvMatToOpInput.createArray(inputImage, scaleInputToNetInputs, netInputSizes);
-		auto outputArray = cvMatToOpOutput.createArray(inputImage, scaleInputToOutput, outputResolution);
-		// Step 4 - Estimate poseKeypoints
-		poseExtractorCaffe.forwardPass(netInputArray, imageSize, scaleInputToNetInputs);
-		const auto poseKeypoints = poseExtractorCaffe.getPoseKeypoints();
-
-		/*mtx.lock();
-		m_poseKeypoints = poseKeypoints.clone();
-		mtx.unlock();*/
-
-		const auto faceRectsOP = faceDetector.detectFaces(poseKeypoints, 1.0f);
-
-		faceExtractor.forwardPass(faceRectsOP, inputImage, 1.0f);
-
-
-		const auto handRectsOP = handDetector.detectHands(poseKeypoints, 1.0f);
-		handExtractor.forwardPass(handRectsOP, inputImage, 1.0f);
-
-		// Step 5 - Render poseKeypoints
-		//poseRenderer.renderPose(outputArray, poseKeypoints, scaleInputToOutput);
-		//const auto faceKeypoints = faceExtractor.getFaceKeypoints();
-		//faceRenderer.renderFace(outputArray, faceKeypoints);
-		//const auto handKeypoints = handExtractor.getHandKeypoints();
-		//handRenderer.renderHand(outputArray, handKeypoints);
-		// Step 6 - OpenPose output format to cv::Mat
-		//auto outputImage = opOutputToCvMat.formatToCvMat(outputArray);
-
-		auto faces = faceExtractor.getFaceKeypoints();
-		m_detectedKeyPointsFace.push_back(faces.getConstCvMat().clone());
-
-		auto hands = handExtractor.getHandKeypoints();
-		m_detectedKeyPointsHands.push_back(hands[0].getConstCvMat().clone());
-		m_detectedKeyPointsHands.push_back(hands[1].getConstCvMat().clone());
-
-		auto poses = poseExtractorCaffe.getPoseKeypoints().clone();
-		m_detectedKeyPointsPose.push_back(poses.getConstCvMat().clone());
-
-
-		//cv::Mat outputImage = OP.render(pyrDownImageInput);
-		//cv::imshow("pose", outputImage);
-		//cv::waitKey(1);
-		//std::cout << "found poses " << m_detectedKeyPointsPose[0].size() << std::endl;
-		mtx.lock();
-		m_newPoseFound = true;
-		detectedKeyPointsPose = m_detectedKeyPointsPose;
-		detectedKeyPointsFace = m_detectedKeyPointsFace;
-		detectedKeyPointsHands = m_detectedKeyPointsHands;
-		mtx.unlock();
-
-	}
-
-	std::cout << "exiting openpose thread " << std::endl;
-
-	
-
-
-}
-
-
 
 
 int main(int, char**)
@@ -387,6 +114,8 @@ int main(int, char**)
 
 	glfwGetFramebufferSize(window, &display_w, &display_h);
 	// Setup ImGui binding
+	ImGui::CreateContext();
+
 	ImGui_ImplGlfwGL3_Init(window, true);
 	ImVec4 clear_color = ImColor(114, 144, 154);
 
@@ -411,7 +140,6 @@ int main(int, char**)
 
 	gRenderInit();
 
-	dlibInit();
 
 	fGrabber.start();
 	fGrabber.setImageDimensions(colorWidth, colorHeight);
@@ -552,69 +280,7 @@ int main(int, char**)
 
 			grender.setFlowTexture(gflow.getFlowTexture());
 
-			if (useOpenPoseFlag)
-			{
-				// detectedKeyPointsPose is a [n][k][3] opencv mat
-				// n number of items detected
-				// k number of points for each item
-				// 3 is x y and weight
-				if (m_newPoseFound && !pauseOpenFlowFlag)
-				{
-					if (detectedKeyPointsFace.size() > 0 && m_useOPFace)
-					{
-						std::vector<float> personFace;
-						personFace.resize(detectedKeyPointsFace[0].size[1] * detectedKeyPointsFace[0].size[2]);
-						for (int i = 0; i < detectedKeyPointsFace[0].size[1] * 3; i += 3)
-						{
-							personFace[i] = detectedKeyPointsFace[0].at<float>(0, i / 3, 0); // x
-							personFace[i + 1] = detectedKeyPointsFace[0].at<float>(0, i / 3, 1); // y
-							personFace[i + 2] = detectedKeyPointsFace[0].at<float>(0, i / 3, 2); // y
-						}
-						grender.setFacesPoints(personFace);
-					}
 
-					if (detectedKeyPointsPose.size() > 0)
-					{
-						std::vector<float> personPose;
-						personPose.resize(detectedKeyPointsPose[0].size[1] * detectedKeyPointsPose[0].size[2]);
-						for (int i = 0; i < detectedKeyPointsPose[0].size[1] * 3; i += 3)
-						{
-							personPose[i] = detectedKeyPointsPose[0].at<float>(0, i / 3, 0); // x
-							personPose[i + 1] = detectedKeyPointsPose[0].at<float>(0, i / 3, 1); // y
-							personPose[i + 2] = detectedKeyPointsPose[0].at<float>(0, i / 3, 2); // y
-						}
-						grender.setPosePoints(personPose);
-					}
-
-					if (detectedKeyPointsHands.size() > 0)
-					{
-
-						std::vector<float> personHands;
-
-						personHands.resize(detectedKeyPointsHands[0].size[1] * detectedKeyPointsHands[0].size[2] * 2);
-						for (int i = 0; i < detectedKeyPointsHands[0].size[1] * 3; i += 3)
-						{
-							personHands[i] = detectedKeyPointsHands[0].at<float>(0, i / 3, 0); // x
-							personHands[i + 1] = detectedKeyPointsHands[0].at<float>(0, i / 3, 1); // y
-							personHands[i + 2] = detectedKeyPointsHands[0].at<float>(0, i / 3, 2); // y
-						}
-						for (int i = 0; i < detectedKeyPointsHands[1].size[1] * 3; i += 3)
-						{
-							personHands[i + (21 * 3)] = detectedKeyPointsHands[1].at<float>(0, i / 3, 0); // x
-							personHands[i + (21 * 3) + 1] = detectedKeyPointsHands[1].at<float>(0, i / 3, 1); // y
-							personHands[i + (21 * 3) + 2] = detectedKeyPointsHands[1].at<float>(0, i / 3, 2); // y
-						}
-						grender.setHandsPoints(personHands);
-
-					}
-
-					mtx.lock();
-					m_newPoseFound = false;
-					m_wipeFlowFlag = true;
-					mtx.unlock();
-				}
-			}
-			grender.bindOpenPosePoints();
 
 			//getDlibFaces();
 
@@ -680,23 +346,23 @@ int main(int, char**)
 			//cv::imshow("dwerwev", tofl[1]); 
 
 
-			cv::Mat mag, ang;
-			cv::Mat hsv_split[3], hsv;
-			cv::Mat rgb;
-			cv::cartToPolar(tofl[0], tofl[1], mag, ang, true);
-			//cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
-			hsv_split[0] = ang;
-			hsv_split[1] = mag * 0.04;
-			hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
-			cv::merge(hsv_split, 3, hsv);
-			cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
-			cv::Mat outrgb, outmix;
-			rgb.convertTo(outrgb, CV_8UC4, 255);
-			cv::addWeighted(outrgb, 0.7, col, 0.3, 1.0, outmix);
-			cv::imshow("totflowrgb", outrgb);
+			//cv::Mat mag, ang;
+			//cv::Mat hsv_split[3], hsv;
+			//cv::Mat rgb;
+			//cv::cartToPolar(tofl[0], tofl[1], mag, ang, true);
+			////cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
+			//hsv_split[0] = ang;
+			//hsv_split[1] = mag * 0.04;
+			//hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
+			//cv::merge(hsv_split, 3, hsv);
+			//cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
+			//cv::Mat outrgb, outmix;
+			//rgb.convertTo(outrgb, CV_8UC4, 255);
+			//cv::addWeighted(outrgb, 0.7, col, 0.3, 1.0, outmix);
+			//cv::imshow("totflowrgb", outrgb);
 
 
-			outWriter << outmix;
+			//outWriter << outmix;
 		}
 			
 
@@ -838,84 +504,8 @@ int main(int, char**)
 				}
 				
 
-				ImGui::Separator();
-				ImGui::Text("openPose Options");
-				if (ImGui::Button("use openPose"))
-				{
-					useOpenPoseFlag ^= 1; 
-					if (useOpenPoseFlag)
-					{
-						std::cout << "starting thread" << std::endl;
-						if (m_status == 0)
-						{
-							m_status = 1;
-							m_thread = new std::thread(getOPose);
 
-						}
-					}
-					else
-					{
-						if (m_status == 1)
-						{
-							m_status = 0;
-							if (m_thread->joinable())
-							{
-								m_thread->join();
-							}
 
-							m_thread = nullptr;
-
-						}
-					}
-				}
-				ImGui::SameLine(); ImGui::Checkbox("", &useOpenPoseFlag);
-				if (ImGui::Button("pause openPose")) pauseOpenFlowFlag ^= 1;  ImGui::SameLine(); ImGui::Checkbox("", &pauseOpenFlowFlag);
-				if (ImGui::Button("pause flow")) pauseFlowFlag ^= 1;  ImGui::SameLine(); ImGui::Checkbox("", &pauseFlowFlag);
-				if (ImGui::Button("use OPFace")) m_useOPFace ^= 1;  ImGui::SameLine(); ImGui::Checkbox("", &m_useOPFace);
-
-				if (ImGui::Button("use DLib"))
-				{
-					useDLibFlag ^= 1;
-					if (useDLibFlag)
-					{
-						std::cout << "starting dlib thread" << std::endl;
-						if (m_dlib_status == 0)
-						{
-							m_dlib_status = 1;
-							m_dlib_thread = new std::thread(getDlibFaces);
-
-						}
-					}
-					else
-					{
-						if (m_dlib_status == 1)
-						{
-							m_dlib_status = 0;
-							if (m_dlib_thread->joinable())
-							{
-								m_dlib_thread->join();
-							}
-
-							m_dlib_thread = nullptr;
-
-						}
-					}
-				}
-				ImGui::SameLine(); ImGui::Checkbox("", &useDLibFlag);
-
-				if (ImGui::Button("just flow face"))
-				{
-					useWebcamFlag = 1;
-					useImagesFlag = 0;
-					useVideosFlag = 0;
-					changedSource = 1;
-					colorWidth = 400;
-					colorHeight = 400;
-					resoPreset = 3;
-
-					m_justFlowFace ^= 1;
-				}
-				ImGui::SameLine(); ImGui::Checkbox("", &m_justFlowFace);
 
 
 
@@ -962,6 +552,7 @@ int main(int, char**)
 
 
 			ImGui::Render();
+			ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
 
 			if (changedSource)
 			{
@@ -982,6 +573,8 @@ int main(int, char**)
 
 	// Cleanup DO SOME CLEANING!!!
 	ImGui_ImplGlfwGL3_Shutdown();
+	ImGui::DestroyContext();
+	glfwTerminate();
 
 
 	//krender.cleanUp();

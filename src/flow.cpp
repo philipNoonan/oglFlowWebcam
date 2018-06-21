@@ -103,16 +103,6 @@ void gFlow::setLocations()
 		variational_refinement_processors.push_back(cv::optflow::createVariationalFlowRefinement());
 
 
-
-
-
-
-	     
-
-	 
-
-	 
-
 	  
 } 
  
@@ -1459,7 +1449,7 @@ bool gFlow::calc(bool useInfrared)
 
 
 
-	jumpFloodCalc();
+	//jumpFloodCalc();
 
 
 
