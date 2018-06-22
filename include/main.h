@@ -16,6 +16,7 @@
 
 //#include "openCVStuff.h"
 #include "flow.h"
+#include "flood.h"
 #include "render.h"
 
 #include "opencv2/core/utility.hpp"
@@ -35,6 +36,8 @@ GLFWwindow *window;
 gRender grender;
 
 gFlow gflow;
+
+gFlood gflood;
 
 FrameGrabber fGrabber;
 

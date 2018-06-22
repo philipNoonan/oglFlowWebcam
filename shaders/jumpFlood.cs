@@ -23,18 +23,25 @@
 
 layout(local_size_x = 32, local_size_y = 32) in; // 
 
-layout(binding = 0, rg32i) uniform iimage2D im_dtnn_0;
-layout(binding = 1, rg32i) uniform iimage2D im_dtnn_1;
+layout(binding = 0) uniform sampler2D textureInitialRGB;
+
+layout(binding = 0, rg32f) uniform image2D im_dtnn_0;
+layout(binding = 1, rg32f) uniform image2D im_dtnn_1;
+
 
 #define LENGTH_SQ(dir) ((dir).x*(dir).x + (dir).y*(dir).y)
-ivec2 dtnn = ivec2(32767); // some large number
-ivec2 pix;
-int dmin = LENGTH_SQ(dtnn);
-uniform int jump;
+#define POS_MAX 0x7FFF // == 32767 == ((1<<15) - 1)
+vec2 dtnn = vec2(POS_MAX); // some large number
+vec2 pix;
+float dmin = LENGTH_SQ(dtnn);
+uniform float jump;
+
+
+
+
 
 subroutine void launchSubroutine();
 subroutine uniform launchSubroutine jumpFloodSubroutine;
-
 
 subroutine(launchSubroutine)
 void jumpFloodAlgorithmInit()
@@ -46,97 +53,53 @@ void jumpFloodAlgorithmInit()
 
     ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
 
-    if (pix.x == 200 && pix.y == 200)
+    vec4 tColor = texelFetch(textureInitialRGB, pix, 0);
+
+    vec4 outPos = vec4(POS_MAX);
+    imageStore(im_dtnn_1, pix, outPos); // wipe it
+
+    if (tColor.x >= 1.0)
     {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
+        outPos = vec4(pix.xy, 0, 0);
     }
 
-    if (pix.x == 200 && pix.y == 400)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 120 && pix.y == 360)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
+    imageStore(im_dtnn_0, pix, outPos);
 
 
-    if (pix.x == 23 && pix.y == 586)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 400 && pix.y == 200)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 75 && pix.y == 200)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 523 && pix.y == 320)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 400 && pix.y == 400)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 400 && pix.y == 600)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-
-    if (pix.x == 600 && pix.y == 400)
-    {
-        imageStore(im_dtnn_0, pix, ivec4(pix.x, pix.y, 0, 0));
-
-    }
-    //imageStore(im_dtnn_0, pix * 30, ivec4(pix.x * 30, pix.y * 30, 0, 0));
+}     
 
 
-}
-
-void DTNN(const in ivec2 off)
+void DTNN(const in vec2 off)
 {
-    ivec2 dtnn_cur = imageLoad(im_dtnn_0, off).xy;
-    ivec2 ddxy = dtnn_cur - pix;
-    int dcur = LENGTH_SQ(ddxy);
-    if (dcur < dmin)
+    vec2 dtnn_cur = vec2(imageLoad(im_dtnn_0, ivec2(off)).xy);
+    // THIS WAS A PAIN AND IS PROBABLY A HACK FIX. DTNN_CURR WOULD RETURN ZERO VALUES AND MESS EVERYTHING UP LEADING TO A 0,0 POINT PERSISTING
+    if (dtnn_cur != vec2(0) && off != vec2(0))
     {
-        dmin = dcur;
-        dtnn = dtnn_cur;
+        vec2 ddxy = dtnn_cur - pix;
+        float dcur = LENGTH_SQ(ddxy);
+        if (dcur < dmin)
+        {
+            dmin = dcur;
+            dtnn = dtnn_cur;
+        }
     }
 }
 
 subroutine(launchSubroutine)
 void jumpFloodAlgorithmUpdate()
 {
-    pix = ivec2(gl_GlobalInvocationID.xy);
+    pix = vec2(gl_GlobalInvocationID.xy);
 
-    dtnn = imageLoad(im_dtnn_0, pix).xy;
+    dtnn = vec2(imageLoad(im_dtnn_0, ivec2(pix)).xy);
 
-    ivec2 ddxy = dtnn - pix;
+    vec2 ddxy = dtnn - pix;
     dmin = LENGTH_SQ(ddxy);
 
-    DTNN(pix + ivec2(-jump, jump));     DTNN(pix + ivec2(0, jump));     DTNN(pix + ivec2(jump, jump));
-    DTNN(pix + ivec2(-jump, 0));                                        DTNN(pix + ivec2(jump, 0));
-    DTNN(pix + ivec2(-jump, -jump));    DTNN(pix + ivec2(0, -jump));    DTNN(pix + ivec2(jump, -jump));
+    DTNN(pix + vec2(-jump, jump));     DTNN(pix + vec2(0, jump));     DTNN(pix + vec2(jump, jump));
+    DTNN(pix + vec2(-jump, 0));                                       DTNN(pix + vec2(jump, 0));
+    DTNN(pix + vec2(-jump, -jump));    DTNN(pix + vec2(0, -jump));    DTNN(pix + vec2(jump, -jump));
 
-    imageStore(im_dtnn_1, pix, ivec4(dtnn.x, dtnn.y, 0, 0));
+    imageStore(im_dtnn_1, ivec2(pix), vec4(dtnn.x, dtnn.y, 0, 0));
 
 
     // for pixel pix, get the 8 points at +- k distance away and see if the distance they store is less than the distance pixel pix has

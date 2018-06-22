@@ -143,20 +143,9 @@ int main(int, char**)
 	fGrabber.start();
 	fGrabber.setImageDimensions(colorWidth, colorHeight);
 
-	//const auto faceNetInputSize = op::flagsToPoint(FLAGS_face_net_resolution, "368x368 (multiples of 16)");
-	//const auto poseModel = op::flagsToPoseModel(FLAGS_model_pose);
 
-	//op::FaceExtractorCaffe faceExtractor{ faceNetInputSize, faceNetInputSize, FLAGS_model_folder, FLAGS_num_gpu_start };
-	//op::FaceDetector faceDetector{ poseModel };
-	//op::FaceCpuRenderer faceRenderer{ 0.4f };
-	//faceExtractor.initializationOnThread();
-	//faceRenderer.initializationOnThread();
-
-
-	/*if (!cap.open(0))
-		return 0;
-	cap.set(CV_CAP_PROP_FRAME_WIDTH, colorWidth);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, colorHeight);*/
+	gflood.compileAndLinkShader();
+	gflood.setLocations();
 
 
 
@@ -179,32 +168,7 @@ int main(int, char**)
 			float topLeftX, topLeftY;
 			float offsetX, offsetY;
 			float faceRectSize = 400;
-			// neck joint is from 0 - 1 this defines up
-			//std::cout << " pre " << std::endl;
-			//cap >> col;
 
-			//if (m_newPoseFound && !pauseOpenFlowFlag)
-			//{
-			//	if (detectedKeyPointsPose[0].size().height != 0 && detectedKeyPointsPose[0].size[1] > 0)
-			//	{
-
-			//		topLeftX = detectedKeyPointsPose[0].at<float>(0, 0, 0); // x (1 === nose point?)
-			//		topLeftY = detectedKeyPointsPose[0].at<float>(0, 0, 1); // y
-
-			//		topLeftX = topLeftX - (faceRectSize / 2) < 0 ? (faceRectSize / 2) : topLeftX;
-			//		topLeftX = topLeftX + (faceRectSize / 2) > col.cols - 1 ? col.cols - 1 - (faceRectSize / 2) : topLeftX;
-
-			//		topLeftY = topLeftY - (faceRectSize / 2) < 0 ? (faceRectSize / 2) : topLeftY;
-			//		topLeftY = topLeftY + (faceRectSize / 2) > col.rows - 1 ? col.rows - 1 - (faceRectSize / 2) : topLeftY;
-
-			//		cv::Mat tcol = col(cv::Rect(topLeftX - (faceRectSize / 2), topLeftY - (faceRectSize / 2), faceRectSize, faceRectSize));
-
-
-			//		col = tcol;
-			//	}
-			//}
-			//else
-			//{
 				cv::Mat tcol = col(cv::Rect(1920 / 2 - 200, 1080 / 2 - 200, faceRectSize, faceRectSize));
 
 
@@ -299,36 +263,6 @@ int main(int, char**)
 			}
 
 
-			//getOPose();
-			//auto outputArray = cvMatToOpOutput.createArray(col, scaleInputToOutput, outputResolution);
-			//if (detectedKeyPointsPose.size() > 0)
-			//{
-			//	detectedKeyPointsFace.resize(1);
-			//	const auto faceRectsOP = faceDetector.detectFaces(m_poseKeypoints, 1.0f);
-			//	faceExtractor.forwardPass(faceRectsOP, col, 1.0f);
-			//	const auto faceKeypoints = faceExtractor.getFaceKeypoints();
-
-			//	detectedKeyPointsFace.push_back(faceKeypoints.getConstCvMat().clone());
-
-			//	if (detectedKeyPointsFace.size() > 0)
-			//	{
-			//		std::vector<float> personFace;
-			//		personFace.resize(detectedKeyPointsFace[0].size[1] * detectedKeyPointsFace[0].size[2]);
-			//		for (int i = 0; i < detectedKeyPointsFace[0].size[1] * 3; i += 3)
-			//		{
-			//			personFace[i] = detectedKeyPointsFace[0].at<float>(0, i / 3, 0); // x
-			//			personFace[i + 1] = detectedKeyPointsFace[0].at<float>(0, i / 3, 1); // y
-			//			personFace[i + 2] = detectedKeyPointsFace[0].at<float>(0, i / 3, 2); // y
-			//		}
-			//		grender.setFacesPoints(personFace);
-			//	}
-			//}
-
-
-
-			//faceRenderer.renderFace(outputArray, faceKeypoints);
-
-			//auto outputImage = opOutputToCvMat.formatToCvMat(outputArray);
 
 			cv::Mat totflow = cv::Mat(colorHeight, colorWidth, CV_32FC2);
 
@@ -362,6 +296,17 @@ int main(int, char**)
 
 
 			//outWriter << outmix;
+			gflood.setFloodInitialRGBTexture(col.data, colorWidth, colorHeight, 3);
+			gflood.setTextureParameters(colorWidth, colorHeight); // rename me to texture width and height
+			gflood.allocateTextures();
+			gflood.allocateBuffers();
+
+			gflood.jumpFloodCalc();
+
+
+
+
+
 		}
 			
 
