@@ -71,7 +71,6 @@ public:
 		return m_window;
 	}
 
-	void SetCallbackFunctions();
 
 	bool showImgui()
 	{
@@ -113,7 +112,6 @@ public:
 
 	//void getDepthPoints3D();
 
-	void getMouseClickPositionsDepth();
 
 	void anchorMW(std::pair<int, int> anchor)
 	{
@@ -426,26 +424,7 @@ private:
 	float m_mouse_pos_y;
 	glm::mat4 m_registration_matrix = glm::mat4(1.0f);
 
-	// this static wrapped clas was taken from BIC comment on https://stackoverflow.com/questions/7676971/pointing-to-a-function-that-is-a-class-member-glfw-setkeycallback
-	void MousePositionCallback(GLFWwindow* window, double positionX, double positionY);
-	void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-	void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
-	class GLFWCallbackWrapper
-	{
-	public:
-		GLFWCallbackWrapper() = delete;
-		GLFWCallbackWrapper(const GLFWCallbackWrapper&) = delete;
-		GLFWCallbackWrapper(GLFWCallbackWrapper&&) = delete;
-		~GLFWCallbackWrapper() = delete;
-
-		static void MousePositionCallback(GLFWwindow* window, double positionX, double positionY);
-		static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-		static void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-		static void SetApplication(gRender *application);
-	private:
-		static gRender* s_application;
-	};
 
 	std::vector<float> m_depthPointsFromBuffer;
 	std::vector<std::pair<int, int>> m_depthPixelPoints2D;

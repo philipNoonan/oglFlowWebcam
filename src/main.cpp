@@ -9,7 +9,6 @@ static void error_callback(int error, const char* description)
 
 void gRenderInit()
 {
-	grender.SetCallbackFunctions();
 	grender.compileAndLinkShader();
 	grender.setColorSize(colorWidth, colorHeight);
 
