@@ -27,6 +27,7 @@ layout(binding = 0) uniform sampler2D textureInitialRGB;
 
 layout(binding = 0, rg32f) uniform image2D im_dtnn_0;
 layout(binding = 1, rg32f) uniform image2D im_dtnn_1;
+layout(binding = 2, rgba8) uniform image2D outImage;
 
 
 #define LENGTH_SQ(dir) ((dir).x*(dir).x + (dir).y*(dir).y)
@@ -110,7 +111,19 @@ void jumpFloodAlgorithmUpdate()
 
     // after the last iteration the distance transform can be determined for each pixel by getting the length of the vec between pixel pix and distance
 
+}
 
+subroutine(launchSubroutine)
+void getColorFromRGB()
+{
+    pix = vec2(gl_GlobalInvocationID.xy);
+    vec2 jfa = vec2(imageLoad(im_dtnn_1, ivec2(pix)).xy);
+
+    vec4 tColor = texelFetch(textureInitialRGB, ivec2(jfa), 0);
+
+    float distCol = distance(pix, jfa);
+
+    imageStore(outImage, ivec2(pix), vec4(distCol.xxx / 100, 1.0));
 
 }
 

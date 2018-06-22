@@ -28,6 +28,7 @@ void gFlood::setLocations()
 	m_subroutine_jumpFloodID = glGetSubroutineUniformLocation(jumpFloodProg.getHandle(), GL_COMPUTE_SHADER, "jumpFloodSubroutine");
 	m_jfaInitID = glGetSubroutineIndex(jumpFloodProg.getHandle(), GL_COMPUTE_SHADER, "jumpFloodAlgorithmInit");
 	m_jfaUpdateID = glGetSubroutineIndex(jumpFloodProg.getHandle(), GL_COMPUTE_SHADER, "jumpFloodAlgorithmUpdate");
+	m_getColorID = glGetSubroutineIndex(jumpFloodProg.getHandle(), GL_COMPUTE_SHADER, "getColorFromRGB");
 
 	m_jumpID = glGetUniformLocation(jumpFloodProg.getHandle(), "jump");
 
@@ -105,7 +106,7 @@ void gFlood::allocateTextures()
 	//glBindTexture(GL_TEXTURE_2D, m_texture_initial);
 	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroVals.data());
 	m_texture_initial_RGB = createTexture(m_texture_initial_RGB, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RGB8);
-
+	m_texture_output_RGB = createTexture(m_texture_output_RGB, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RGBA8);
 }   
 
 void gFlood::pushBackTP(float x, float y)
@@ -273,11 +274,6 @@ void gFlood::jumpFloodCalc()
 
 
 
-
-
-
-
-
 	//std::vector<float>::iterator it;
 
 	//it = std::find(vecdata.begin(), vecdata.end(), 0);
@@ -335,5 +331,34 @@ void gFlood::jumpFloodCalc()
 	cv::split(col, colSplit);
 	cv::imshow("col0", colSplit[0] * 0.001f);
 	cv::imshow("col1", colSplit[1] * 0.001f);
+
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_texture_initial);
+	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_getColorID);
+	glBindImageTexture(1, m_texture_jfa_1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(2, m_texture_output_RGB, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+
+	glDispatchCompute(compWidth, compHeight, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+
+
+
+
+
+	std::vector<uint8_t> colMatVon(m_texture_width * m_texture_height * 4, 4);
+	cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_8UC4, colMatVon.data());
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_texture_output_RGB);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_BYTE, colVon.data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(0);
+
+	cv::imshow("cols", colVon);
+	cv::waitKey(1);
 
 }

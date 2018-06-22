@@ -18,8 +18,8 @@ void gFlow::compileAndLinkShader()
 	extKalmanProg.compileShader("shaders/extendedKalmanFilter.cs");
 	extKalmanProg.link(); 
 
-	jumpFloodProg.compileShader("shaders/jumpFlood.cs");
-	jumpFloodProg.link();
+	//jumpFloodProg.compileShader("shaders/jumpFlood.cs");
+	//jumpFloodProg.link();
 	 
 	}            
 	catch (GLSLProgramException &e) {        

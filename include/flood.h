@@ -81,6 +81,7 @@ private:
 	GLuint m_jumpID;
 	GLuint m_applyFilterID;
 	GLuint m_edgeThresholdID;
+	GLuint m_getColorID;
 
 	//Buffers
 	GLuint m_bufferClickedPoints;
@@ -95,6 +96,7 @@ private:
 	GLuint m_texture_jfa_0;
 	GLuint m_texture_jfa_1;
 	GLuint m_texture_initial_RGB;
+	GLuint m_texture_output_RGB;
 
 	// parameters
 	int m_texture_width;
