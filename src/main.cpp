@@ -16,7 +16,6 @@ void gRenderInit()
 	grender.setVertPositions();
 	grender.allocateBuffers();
 	grender.setTextures(gflow.getColorTexture(), gflow.getEdgesTexture()); //needs texture uints from gfusion init
-	grender.anchorMW(std::make_pair<int, int>(1920 - 512 - grender.guiPadding().first, grender.guiPadding().second));
 	//krender.genTexCoordOffsets(1, 1, 1.0f);
 }
 
@@ -137,6 +136,8 @@ int main(int, char**)
 
 	gflow.allocateBuffers();
 
+
+
 	gRenderInit();
 
 
@@ -153,10 +154,7 @@ int main(int, char**)
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwGetFramebufferSize(window, &display_w, &display_h);
-		grender.renderScaleHeight((float)display_h / 1080.0f);
-		grender.renderScaleWidth((float)display_w / 1920.0f);
-
-		grender.anchorMW(std::make_pair<int, int>(50, 1080 - 424 - 50 ));
+		
 
 		//// Rendering
 		glViewport(0, 0, display_w, display_h);
@@ -236,31 +234,18 @@ int main(int, char**)
 
 			gflow.setTexture(newcol.data);
 
+
+
 			gflow.calc(false);
 
+			gflow.buildQuadtree();
 
-			grender.setTrackedPointsBuffer(gflow.getTrackedPointsBuffer());
 
 			grender.setFlowTexture(gflow.getFlowTexture());
 
 
 
-			//getDlibFaces();
 
-			if (!pauseFlowFlag)
-			{
-				gflow.track(grender.getPoseBuffer(), 18);
-				gflow.track(grender.getFaceBuffer(), 70);
-				//gflow.track(grender.getHandsBuffer(), );
-
-
-			}
-
-			if (m_wipeFlowFlag)
-			{
-				gflow.wipeSumFlow();
-				m_wipeFlowFlag = false;
-			}
 
 
 
@@ -301,7 +286,11 @@ int main(int, char**)
 			gflood.allocateTextures();
 			gflood.allocateBuffers();
 
-			gflood.jumpFloodCalc();
+			if (showDistanceFlag)
+			{
+				gflood.jumpFloodCalc();
+				grender.setDistanceTexture(gflood.getFloodOutputTexture());
+			}
 
 
 
@@ -314,7 +303,7 @@ int main(int, char**)
 			glfwPollEvents();
 			ImGui_ImplGlfwGL3_NewFrame();
 
-			grender.setRenderingOptions(showDepthFlag, showBigDepthFlag, showInfraFlag, showColorFlag, showLightFlag, showPointFlag, showFlowFlag, showEdgesFlag, showNormalFlag, showVolumeFlag, showTrackFlag);
+			grender.setRenderingOptions(showDepthFlag, showBigDepthFlag, showInfraFlag, showColorFlag, showLightFlag, showPointFlag, showFlowFlag, showEdgesFlag, showNormalFlag, showVolumeFlag, showTrackFlag, showDistanceFlag);
 
 				grender.setColorImageRenderPosition(vertFov);
 
@@ -331,14 +320,9 @@ int main(int, char**)
 
 			if (grender.showImgui())
 			{
-				ImGui::SetNextWindowPos(ImVec2(1600 - 32 - 528 - 150, 32));
-				ImGui::SetNextWindowSize(ImVec2(528 + 150, 424), ImGuiSetCond_Always);
+				//ImGui::SetNextWindowPos(ImVec2(1600 - 32 - 528 - 150, 32));
+				//ImGui::SetNextWindowSize(ImVec2(528 + 150, 424), ImGuiSetCond_Always);
 				ImGuiWindowFlags window_flags = 0;
-				window_flags |= ImGuiWindowFlags_NoTitleBar;
-				//window_flags |= ImGuiWindowFlags_ShowBorders;
-				window_flags |= ImGuiWindowFlags_NoResize;
-				window_flags |= ImGuiWindowFlags_NoMove;
-				window_flags |= ImGuiWindowFlags_NoCollapse;
 
 				float arr[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 				arr[0] = gflow.getTimeElapsed();
@@ -460,6 +444,9 @@ int main(int, char**)
 				
 				if (ImGui::Button("Show Point")) showPointFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showPointFlag); ImGui::SameLine(); if (ImGui::Button("Show Edges")) showEdgesFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showEdgesFlag);
 
+				//if (ImGui::Button("Show flood")) showFloodFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showFloodFlag);
+				if (ImGui::Button("Show flood")) showDistanceFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showDistanceFlag);
+
 				ImGui::Separator();
 				ImGui::Text("Other Options");
 
@@ -476,12 +463,16 @@ int main(int, char**)
 				ImGui::Separator();
 				ImGui::Text("View Transforms");
 				ImGui::SliderFloat("vFOV", &vertFov, 1.0f, 90.0f);
-
-				ImGui::SliderFloat("valA", &valA, 0.00001f, 0.5f);
+				ImGui::SliderInt("tex level", &texLevel, 0, 9);
+				ImGui::SliderFloat("valA", &valA, 0.1f, 50.0f);
 				ImGui::SliderFloat("valB", &valB, 0.00001f, 0.5f);
+				ImGui::SliderInt("cutoff", &cutoff, 0, 7);
 
 				grender.setFov(vertFov);
 				gflow.setVals(valA, valB);
+				gflow.setCutoff(cutoff);
+				gflood.setEdgeThreshold(valA);
+				grender.setRenderLevel(texLevel);
 
 				if (ImGui::Button("Reset Sliders")) resetSliders();
 

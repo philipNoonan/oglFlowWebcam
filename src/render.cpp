@@ -67,6 +67,7 @@ void gRender::setLocations()
 	m_ViewProjectionID = glGetUniformLocation(renderProg.getHandle(), "ViewProjection");
 	m_sliceID = glGetUniformLocation(renderProg.getHandle(), "slice");
 	m_imSizeID = glGetUniformLocation(renderProg.getHandle(), "imSize");
+	m_texLevelID = glGetUniformLocation(renderProg.getHandle(), "texLevel");
 
 	m_getPositionSubroutineID = glGetSubroutineUniformLocation(renderProg.getHandle(), GL_VERTEX_SHADER, "getPositionSubroutine");
 	m_fromTextureID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromTexture");
@@ -87,6 +88,8 @@ void gRender::setLocations()
 	m_fromTrackID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromTrack");
 	m_fromFlowID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromFlow");
 	m_fromEdgesID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromEdges");
+	m_fromDistanceID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromDistance");
+	m_fromQuadtreeID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromQuadtree");
 
 
 
@@ -137,177 +140,8 @@ void gRender::setVertPositions()
 
 	m_indices = indices;
 
-	m_trackedPoints.resize(1000 * 1000 * 2);
 
-	for (int i = 0; i < 2000; i += 2)
-	{
-		for (int j = 0; j < 1000; j++)
-		{
-			m_trackedPoints[j * 2000 + i] = (1920 >> 1) - 500 + (i / 2) * 10;
-			m_trackedPoints[j * 2000 + i + 1] = (1080 >> 1) - 500 + j * 10;
 
-		}
-	}
-
-	m_facePoints.resize(70 * 3, 0);
-	m_posePoints.resize(18 * 3, 0); // for coco 18
-	m_handsPoints.resize(21 * 3 * 2, 0);// 21 for each hand
-
-	std::vector<unsigned int> idxPose = {
-		0, 1, // neck
-		1, 2, // right shoulder
-		2, 3, // right top arm
-		3, 4, // right forearm
-		1, 5, // left shoulder
-		5, 6, // left top arm
-		6, 7, // left forearm
-		1, 8, // right torso
-		8, 9, // right thigh
-		9, 10, // right shin
-		1, 11, // left torso
-		11, 12, // left thigh
-		12, 13, // left shin
-		16, 14, // right ear2eye
-		14, 0, // right eye2nose
-		0, 15, // left nose2eye
-		15, 17 // left eye2ear
-	};
-
-	m_idxPose = idxPose;
-
-	// ibug 300W 68 + 2 iris == 70 points
-	std::vector<unsigned int> idxFace = {
-		// jaw
-		0, 1,
-		1, 2,
-		2, 3,
-		3, 4,
-		4, 5,
-		5, 6,
-		6, 7,
-		7, 8,
-		8, 9,
-		9, 10,
-		10, 11,
-		11, 12,
-		12, 13,
-		13, 14,
-		14, 15,
-		15, 16,
-		// right eyebrow
-		17, 18,
-		18, 19,
-		19, 20,
-		20, 21,
-		// left eyebrow
-		22, 23,
-		23, 24, 
-		24, 25, 
-		25, 26,
-		// nose
-		27, 28,
-		28, 29,
-		29, 30,
-		30, 31,
-		31, 32,
-		32, 33,
-		33, 34,
-		34, 35,
-		35, 30,
-		// right eye
-		36, 37,
-		37, 38,
-		38, 39,
-		39, 40,
-		40, 41,
-		41, 36,
-		// left eye
-		42, 43, 
-		43, 44,
-		44, 45,
-		45, 46,
-		46, 47,
-		47, 42,
-		// mouth outer
-		48, 49, 
-		49, 50,
-		50, 51,
-		51, 52,
-		52, 53,
-		53, 54,
-		54, 55,
-		55, 56,
-		56, 57,
-		57, 58,
-		58, 59,
-		59, 48,
-		// mouth inner
-		60, 61,
-		61, 62,
-		62, 63,
-		63, 64,
-		64, 65,
-		65, 66,
-		66, 67,
-		67, 60
-	};
-	m_idxFace = idxFace;
-
-	std::vector<unsigned int> idxHands = {
-		// left thumb
-		0, 1,
-		1, 2,
-		2, 3,
-		3, 4,
-		// left index finger
-		0, 5,
-		5, 6,
-		6, 7,
-		7, 8,
-		// left middle finger
-		0, 9,
-		9, 10,
-		10, 11,
-		11, 12,
-		// left ring finger
-		0, 13,
-		13, 14,
-		14, 15,
-		15, 16,
-		// left pinky
-		0, 17,
-		17, 18,
-		18, 19,
-		19, 20,
-		// right thumb
-		21, 22,
-		22, 23,
-		23, 24,
-		24, 25,
-		// right index finger
-		21, 26,
-		26, 27,
-		27, 28,
-		28, 29,
-		// right middle finger
-		21, 30,
-		30, 31,
-		31, 32,
-		32, 33,
-		// right ring finger
-		21, 34,
-		34, 35,
-		35, 36,
-		36, 37,
-		// right pinky
-		21, 38,
-		38, 39,
-		39, 40,
-		40, 41
-	};
-	m_idxHands = idxHands;
-
-	m_indices_pose = idxFace;
 }
 
 void gRender::allocateBuffers()
@@ -333,117 +167,17 @@ void gRender::allocateBuffers()
 	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(5);
 
-
-
 	glBindVertexArray(0);
-
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, m_posBufMC);
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, 128*128*128*4 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-
-	glGenVertexArrays(1, &m_VAO_MC);
-	glGenBuffers(1, &m_bufferTrackedPoints);
-	glGenBuffers(1, &m_bufferFacePoints);
-	glGenBuffers(1, &m_bufferPosePoints);
-	glGenBuffers(1, &m_bufferHandsPoints);
-
-	glGenBuffers(1, &m_EBO_Pose);
-
-
-	glBindVertexArray(m_VAO_MC);
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_bufferTrackedPoints);
-	glBufferData(GL_ARRAY_BUFFER, 100 * 100 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 0, 0); // 2  floats per vertex, x,y
-	glEnableVertexAttribArray(7);
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_bufferFacePoints);
-	glBufferData(GL_ARRAY_BUFFER, 70 * 3 * sizeof(float), m_facePoints.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(8, 3, GL_FLOAT, GL_FALSE, 0, 0); // 3  floats per vertex, x,y, weight
-	glEnableVertexAttribArray(8);
-
-	// EBO
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO_Pose);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices_pose.size() * sizeof(unsigned int), &m_indices_pose[0], GL_DYNAMIC_DRAW); // so long as indicies pose is the big one?
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_bufferPosePoints);
-	glBufferData(GL_ARRAY_BUFFER, 18 * 3 * sizeof(float), m_posePoints.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(9, 3, GL_FLOAT, GL_FALSE, 0, 0); // 3  floats per vertex, x,y, weight
-	glEnableVertexAttribArray(9);
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_bufferHandsPoints);
-	glBufferData(GL_ARRAY_BUFFER, 21 * 3 * 2 * sizeof(float), m_handsPoints.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(10, 3, GL_FLOAT, GL_FALSE, 0, 0); // 3  floats per vertex, x,y, weight
-	glEnableVertexAttribArray(10);
-
-	glBindVertexArray(0);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, m_posBufMC);
-	//glBufferData(GL_ARRAY_BUFFER, 128 * 128 * 128 * 2 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-	//glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 0, 0); // 4  floats per vertex, x,y,z and 1 for padding? this is annoying...
-	//glEnableVertexAttribArray(6);
-
-	//glBindVertexArray(0);
-
-
-	//glGenBuffers(1, &m_bufferTrackedPoints);
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferTrackedPoints);
-	//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, m_bufferTrackedPoints);
-	//glBufferData(GL_SHADER_STORAGE_BUFFER, m_trackedPoints.size() * sizeof(float), m_trackedPoints.data(), GL_DYNAMIC_DRAW);
-
 
 }
 
-void gRender::setWindowLayout()
-{
-	m_anchorMW = std::make_pair<int, int>(50, 50);
-
-
-}
 
 void gRender::setComputeWindowPosition()
 {
 	glViewport(0, 0, 1920, 1080);
 }
 
-//
-//void kRender::setColorDepthMapping(int* colorDepthMap)
-//{
-//	// 2d array index is given by
-//	// p.x = idx / size.x
-//	// p.y = idx % size.x
-//
-//	//for m_colorDepthMapping[j + 1] = y color image axis, 1 at top
-//	// m_colorDepthMapping[j] = x axis, 0 on the left, 
-//
-//	// MAP ME¬¬¬
-//	int j = 0;
-//	for (int i = 0; i < (m_depth_width * m_depth_height); i++, j+=2)
-//	{
-//		int yCoord = colorDepthMap[i] / m_color_width;
-//		int xCoord = colorDepthMap[i] % m_color_width;
-//		m_colorDepthMapping[j] = ((float)xCoord) / (float)m_color_width;
-//		m_colorDepthMapping[j + 1] = (1080.0f - (float)yCoord) / (float)m_color_height;
-//
-//
-//
-//	}
-//
-//
-//
-//	glBindBuffer(GL_ARRAY_BUFFER, m_buf_color_depth_map);
-//	glBufferSubData(GL_ARRAY_BUFFER, 0, m_colorDepthMapping.size() * sizeof(float), m_colorDepthMapping.data());
-//	glBindBuffer(GL_ARRAY_BUFFER, 0);
-//
-//	//// Other way to copy data to buffer, taken from https://learnopengl.com/#!Advanced-OpenGL/Advanced-Data
-//	//glBindBuffer(GL_ARRAY_BUFFER, m_buf_color_depth_map);
-//	//void *ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-//	//memcpy_s(ptr, m_colorDepthMapping.size() * sizeof(float), m_colorDepthMapping.data(), m_colorDepthMapping.size() * sizeof(float));
-//	//glUnmapBuffer(GL_ARRAY_BUFFER);
-//
-//}
-
-
-void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag)
+void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance)
 {
 	m_showDepthFlag = showDepthFlag;
 	m_showBigDepthFlag = showBigDepthFlag;
@@ -456,6 +190,7 @@ void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, boo
 	m_showNormalFlag = showNormalFlag;
 	m_showVolumeSDFFlag = showVolumeSDFFlag;
 	m_showTrackFlag = showTrackFlag;
+	m_showDistanceFlag = showDistance;
 }
 
 void gRender::setTextures(GLuint colorTex, GLuint edgesTex)
@@ -476,13 +211,10 @@ void gRender::bindTexturesForRendering()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-
 	if (m_showFlowFlag)
 	{
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, m_textureFlow);
-
-
 	}
 
 	if (m_showColorFlag)
@@ -491,35 +223,23 @@ void gRender::bindTexturesForRendering()
 		glBindTexture(GL_TEXTURE_2D, m_textureColor);
 	}
 
-
 	if (m_showEdgesFlag)
 	{
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_2D, m_textureEdges);
 	}
 
+	if (m_showDistanceFlag)
+	{
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, m_textureDistance);
+	}
+
 
 
 }
 
-void gRender::bindBuffersForRendering()
-{
-	glBindVertexArray(m_VAO_MC);
 
-	glBindBuffer(GL_ARRAY_BUFFER, m_bufferTrackedPoints);
-	glVertexAttribPointer(7, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(7);
-
-
-
-
-
-	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_posBufMC);
-	//glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, 0); // 4  floats per vertex, x,y,z and 1 for padding? this is annoying...
-	//glEnableVertexAttribArray(4);
-
-
-}
 
 
 void gRender::Render(bool useInfrared)
@@ -528,7 +248,6 @@ void gRender::Render(bool useInfrared)
 	// set uniforms
 	// render textures
 	bindTexturesForRendering();
-	bindBuffersForRendering();
 	//setDepthImageRenderPosition();
 	//setNormalImageRenderPosition();
 	//setViewport(0, 0, 1920, 1080);
@@ -629,6 +348,8 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 		imageSize = glm::vec2(m_color_width, m_color_height);
 		MVP = m_projection * m_view * m_model_color;
 
+		//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+		//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 		glBindVertexArray(m_VAO);
 
 		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
@@ -636,10 +357,12 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+		glUniform1i(m_texLevelID, m_texLevel);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
 		  
-
+		//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	}
 
 	if (m_showEdgesFlag)
@@ -672,37 +395,32 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-
+		glUniform1i(m_texLevelID, m_texLevel);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	}
+
+	if (m_showDistanceFlag)
+	{
+		glm::vec2 imageSize;
+
+		imageSize = glm::vec2(m_color_width, m_color_height);
+		MVP = m_projection * m_view * m_model_color;
+
+		glBindVertexArray(m_VAO);
+		MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 5.0f));
+		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
+		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromDistanceID);
+		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
+		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+		glUniform1i(m_texLevelID, m_texLevel);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
 	}
 
 
 
-	if (m_showPointFlag)
-	{
-		glBindVertexArray(m_VAO_MC);
-
-		glEnable(GL_PROGRAM_POINT_SIZE);
-
-		MVP = m_projection * m_view * m_model_flow;
-		//MVP = m_projection * m_view * m_model_color; 
-		glm::vec2 imageSize;
-
-		imageSize = glm::vec2(m_color_width, m_color_height);
-		
-		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-
-		MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 10.0f));
-		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromPosition2DID);
-		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromPointsID);
-		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection)); 
-		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		glDrawArrays(GL_POINTS, 0, m_trackedPoints.size() / 2);
-
-
-
-	} 
 
 
 

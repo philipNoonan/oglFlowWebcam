@@ -106,7 +106,7 @@ void gFlood::allocateTextures()
 	//glBindTexture(GL_TEXTURE_2D, m_texture_initial);
 	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroVals.data());
 	m_texture_initial_RGB = createTexture(m_texture_initial_RGB, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RGB8);
-	m_texture_output_RGB = createTexture(m_texture_output_RGB, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RGBA8);
+	m_texture_output_RGBA = createTexture(m_texture_output_RGBA, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RGBA8);
 }   
 
 void gFlood::pushBackTP(float x, float y)
@@ -176,22 +176,22 @@ void gFlood::setFloodInitialRGBTexture(unsigned char * data, int width, int heig
 	glBindTexture(GL_TEXTURE_2D, m_texture_initial_RGB);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
 
-	//err = glGetError();
+	////err = glGetError();
 
-	cv::Mat im0 = cv::Mat(height, width, CV_8UC3);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_texture_initial_RGB);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, im0.data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//cv::Mat im0 = cv::Mat(height, width, CV_8UC3);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_initial_RGB);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, im0.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
 
-	//cv::Mat colSplit[2];
-	//cv::split(col, colSplit);
-	//cv::imshow("col0", colSplit[0] > 0);
-	//cv::imshow("col1", colSplit[1] > 0);
+	////cv::Mat colSplit[2];
+	////cv::split(col, colSplit);
+	////cv::imshow("col0", colSplit[0] > 0);
+	////cv::imshow("col1", colSplit[1] > 0);
 
-	cv::imshow("mat", im0);
-	cv::waitKey(1);
+	//cv::imshow("mat", im0);
+	//cv::waitKey(1);
 
 
 
@@ -226,7 +226,7 @@ void gFlood::jumpFloodCalc()
 {
 
 	int compWidth = divup(m_texture_width, 32);
-	int compHeight = divup(m_texture_width, 32);
+	int compHeight = divup(m_texture_height, 32);
 
 
 	edgeDetectProg.use();
@@ -234,24 +234,24 @@ void gFlood::jumpFloodCalc()
 	glBindTexture(GL_TEXTURE_2D, m_texture_initial_RGB);
 	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_applyFilterID);
 	glBindImageTexture(0, m_texture_initial, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8);
-	glUniform1f(m_edgeThresholdID, 0.5);
+	glUniform1f(m_edgeThresholdID, m_edgeThreshold);
 
-	glDispatchCompute(compWidth, compHeight, 1);
+	glDispatchCompute(compWidth, compWidth, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 
-	std::vector<int8_t> edgeData(m_texture_width * m_texture_height, 3);
-	cv::Mat colEdge = cv::Mat(m_texture_height, m_texture_width, CV_8UC1, edgeData.data());
+	//std::vector<int8_t> edgeData(m_texture_width * m_texture_height, 3);
+	//cv::Mat colEdge = cv::Mat(m_texture_height, m_texture_width, CV_8UC1, edgeData.data());
 
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_texture_initial);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_BYTE, colEdge.data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_initial);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_BYTE, colEdge.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
 
-	cv::imshow("edges", colEdge);
-	cv::waitKey(1);
+	//cv::imshow("edges", colEdge);
+	//cv::waitKey(1);
 
 
 	jumpFloodProg.use();
@@ -289,15 +289,18 @@ void gFlood::jumpFloodCalc()
 	//int compHeight = divup(m_texture_height, 32);
 
 	int iterCount = 0;
-	float maxDim = std::max(m_texture_width, m_texture_width);
-	int log2ceil = std::ceil(std::log(maxDim) / std::log(2));
-	int passes = log2ceil - 1;
-	for (int jumpLength = m_texture_width / 2; jumpLength > 0; jumpLength >>= 1, iterCount++)
+	float maxDim = std::max(m_texture_width, m_texture_height);
+	//int log2ceil = std::ceil(std::log(maxDim) / std::log(2));
+	//int passes = log2ceil - 1;
+	// using 11 levels that will enable an image up to 4096x4096
+	for (int level = 0; level < 11; level++)
 	{
-		glUniform1f(m_jumpID, (float)jumpLength);
+		int stepWidth = int(std::pow(11.0 - level, 2) + 0.5);
+
+		glUniform1f(m_jumpID, (float)stepWidth);
 		glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_jfaUpdateID);
 
-		if (iterCount % 2 == 0)
+		if (level % 2 == 0)
 		{
 			glBindImageTexture(0, m_texture_jfa_0, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
 			glBindImageTexture(1, m_texture_jfa_1, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
@@ -317,20 +320,20 @@ void gFlood::jumpFloodCalc()
 
 
 
-	std::vector<float> vecdata(m_texture_width * m_texture_height * 2);
-	cv::Mat col = cv::Mat(m_texture_height, m_texture_width, CV_32FC2, vecdata.data());
+	//std::vector<float> vecdata(m_texture_width * m_texture_height * 2);
+	//cv::Mat col = cv::Mat(m_texture_height, m_texture_width, CV_32FC2, vecdata.data());
 
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_texture_jfa_1);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, col.data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_jfa_1);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, col.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
 
-	cv::Mat colSplit[2];
-	cv::split(col, colSplit);
-	cv::imshow("col0", colSplit[0] * 0.001f);
-	cv::imshow("col1", colSplit[1] * 0.001f);
+	//cv::Mat colSplit[2];
+	//cv::split(col, colSplit);
+	//cv::imshow("col0", colSplit[0] * 0.001f);
+	//cv::imshow("col1", colSplit[1] * 0.001f);
 
 
 
@@ -338,7 +341,7 @@ void gFlood::jumpFloodCalc()
 	glBindTexture(GL_TEXTURE_2D, m_texture_initial);
 	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_getColorID);
 	glBindImageTexture(1, m_texture_jfa_1, 0, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
-	glBindImageTexture(2, m_texture_output_RGB, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
+	glBindImageTexture(2, m_texture_output_RGBA, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA8);
 
 	glDispatchCompute(compWidth, compHeight, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -348,17 +351,17 @@ void gFlood::jumpFloodCalc()
 
 
 
-	std::vector<uint8_t> colMatVon(m_texture_width * m_texture_height * 4, 4);
-	cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_8UC4, colMatVon.data());
+	//std::vector<uint8_t> colMatVon(m_texture_width * m_texture_height * 4, 4);
+	//cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_8UC4, colMatVon.data());
 
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_texture_output_RGB);
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_BYTE, colVon.data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_output_RGBA);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_BYTE, colVon.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
 
-	cv::imshow("cols", colVon);
-	cv::waitKey(1);
+	//cv::imshow("cols", colVon);
+	//cv::waitKey(1);
 
 }

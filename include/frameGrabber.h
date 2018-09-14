@@ -47,6 +47,9 @@ public:
 	{
 		m_colorWidth = width;
 		m_colorHeight = height;
+
+		mBuffer = cv::Mat(m_colorHeight, m_colorWidth, CV_8UC3);
+		outbuf = cv::Mat(m_colorHeight, m_colorWidth, CV_8UC3);
 	}
 
 	void resetImageDimensions()
@@ -80,8 +83,8 @@ private:
 	//long long mFrameNameCounter;
 	//bool mThreadOpened;
 	cv::VideoCapture m_cap;
-	cv::Mat mBuffer = cv::Mat(540, 960, CV_8UC3);
-	cv::Mat outbuf = cv::Mat(540, 960, CV_8UC3);;
+	cv::Mat mBuffer = cv::Mat(960, 540, CV_8UC3);
+	cv::Mat outbuf = cv::Mat(960, 540, CV_8UC3);;
 	//std::mutex mBufferMutex;
 	//std::atomic<bool> mCloseThread;
 	//std::thread mThread;

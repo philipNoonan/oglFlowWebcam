@@ -91,6 +91,8 @@ bool showEdgesFlag = false;
 bool showNormalFlag = false;
 bool showVolumeFlag = false;
 bool showTrackFlag = false;
+bool showFloodFlag = false;
+bool showDistanceFlag = false;
 
 float irBrightness = 1.0;
 float irLow = 0.0f;
@@ -99,6 +101,8 @@ float vertFov = 40.0f;
 
 float valA = 0.01f;
 float valB = 0.01f;
+int texLevel = 0;
+int cutoff = 0;
 
 bool useWebcamFlag = 1;
 bool useImagesFlag = 0;

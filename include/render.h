@@ -53,9 +53,6 @@ public:
 		, m_VBO_Color()
 		, m_VBO_Depth()
 		, m_EBO()
-		, m_gui_padding(std::make_pair<int, int>(50, 50))
-		, m_render_scale_height(1.0f)
-		, m_render_scale_width(1.0f)
 		//, m_graph_points_x()
 		//, m_graph_points_y()
 		//, m_graph_points_z()
@@ -77,54 +74,8 @@ public:
 		return m_show_imgui;
 	}
 
-	float renderScaleHeight()
-	{
-		return m_render_scale_height;
-	}
-	void renderScaleHeight(float scale)
-	{
-		m_render_scale_height = scale;
-	}
-	float renderScaleWidth()
-	{
-		return m_render_scale_width;
-	}
-	void renderScaleWidth(float scale)
-	{
-		m_render_scale_width = scale;
-	}
-
-	//std::vector<float> graphPointsX()
-	//{
-	//	return m_graph_vector_x;
-	//}
 
 
-	std::pair<int, int> guiPadding()
-	{
-		return std::make_pair<int, int>(m_gui_padding.first * m_render_scale_width, m_gui_padding.second * m_render_scale_height);
-	}
-
-	std::vector<float> getDepthPoints()
-	{
-		return m_depthPointsFromBuffer;
-	}
-
-	//void getDepthPoints3D();
-
-
-	void anchorMW(std::pair<int, int> anchor)
-	{
-		m_anchorMW = std::make_pair<int, int>((float)anchor.first * m_render_scale_width, (float)anchor.second * m_render_scale_height);
-	}
-	void anchorSG(std::pair<int, int> anchor)
-	{
-		m_anchorSG = anchor;
-	}
-	void anchorAS(std::pair<int, int> anchor) 
-	{
-		m_anchorAS = anchor;
-	}
 	GLFWwindow * loadGLFWWindow();
 
 	void compileAndLinkShader();
@@ -134,78 +85,19 @@ public:
 	void allocateBuffers();
 	void setTextures(GLuint colorTex, GLuint edgesTex);
 	void setFlowTexture(GLuint flowTex);
-	void setBuffersFromMarchingCubes(GLuint posBuf, GLuint normBuf, size_t numVerts)
+	void setDistanceTexture(GLuint distTex)
 	{
-		m_posBufMC = posBuf;
-		m_normBufMC = normBuf;
-		m_numVerts = numVerts;
-	}
-	void setTrackedPointsBuffer(GLuint trackPointsBuf)
-	{
-		GLint size = 100 * 100 * 2 * sizeof(float);
-		glBindBuffer(GL_COPY_READ_BUFFER, trackPointsBuf);
-		glGetBufferParameteriv(GL_COPY_READ_BUFFER, GL_BUFFER_SIZE, &size);
-
-		glBindBuffer(GL_COPY_WRITE_BUFFER, m_bufferTrackedPoints);
-		glBufferData(GL_COPY_WRITE_BUFFER, size, nullptr, GL_STATIC_DRAW);
-
-		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, size);
-
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-
-
-		std::vector<float> outputSDFData;
-		outputSDFData.resize(100 * 100 * 2);
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferTrackedPoints);
-		void *ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-		memcpy_s(outputSDFData.data(), outputSDFData.size() * sizeof(float), ptr, outputSDFData.size() * sizeof(float));
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-
-
-	}
-
-	void setFacesPoints(std::vector<float> facePoints)
-	{
-		m_facePoints = facePoints;
-
-	}
-	void setPosePoints(std::vector<float> posePoints)
-	{
-		m_posePoints = posePoints;
-	}
-	void setHandsPoints(std::vector<float> personHands)
-	{
-		m_handsPoints = personHands;
-	}
-	GLuint getPoseBuffer()
-	{
-		return m_bufferPosePoints;
-	}
-	GLuint getFaceBuffer()
-	{
-		return m_bufferFacePoints;
-	}
-	GLuint getHandsBuffer()
-	{
-		return m_bufferHandsPoints;
-	}
-	void setPosePoints(std::vector<float> detectedKeyPointsPose, std::vector<float>detectedKeyPointsFace, std::vector<float>detectedKeyPointsHands)
-	{
-
+		m_textureDistance = distTex;
 	}
 
 	void bindBuffersForRendering();
-	void bindOpenPosePoints();
 	//void setWindowPositions();
 	//void setWindowPositions(std::pair<int, int> anchorMW, std::pair<int, int> anchorAS, std::pair<int, int> anchorSG);
 	void setWindowLayout();
 	//void setupComputeFBO();
 
 	// The correcter way 
-	void setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag);
+	void setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance);
 	void setBuffersForRendering(float * depthArray, float * bigDepthArray, float * colorArray, float * infraArray, unsigned char * flowPtr);
 	void setColorImageRenderPosition(float vertFov);
 	void setFlowImageRenderPosition(int height, int width, float vertFov);
@@ -215,12 +107,8 @@ public:
 	//void setColorTextureProjectionMatrix();
 	//void setViewport(int x, int y, int w, int h);
 
-	void setColorDepthMapping(int* colorDepthMap);
 
-	void setVolumeSize(glm::vec3 size)
-	{
-		m_volume_size = size;
-	}
+
 	void updateVerts(float w, float h);
 
 	void bindTexturesForRendering();
@@ -233,17 +121,7 @@ public:
 
 	void setComputeWindowPosition();
 
-	void setCameraParams(glm::vec4 camPams, glm::vec4 camPamsColor)
-	{
-		m_cameraParams = camPams;
-		m_cameraParams_color = camPamsColor;
-	}
 
-
-	void setExportPly(bool opt)
-	{
-		m_export_ply = opt;
-	}
 
 	/*
 	void setRVec(cv::Mat rvec)
@@ -266,33 +144,20 @@ public:
 	}
 
 
-	//void exportPointCloud();
 
-	// compute shader time
-	void renderPointCloud(bool useBigDepth = false);
-	void renderTSDFPointCloud();
 
-	// TSDF STUFF
 
-	void genTexCoordOffsets(GLuint width, GLuint height, GLfloat step);
 
-	void setSelectInitPose(bool flag)
-	{
-		m_selectInitialPoseFlag = flag;
-	}
-	float getCenterPixX()
-	{
-		return m_center_pixX;
-	}
-	float getCenterPixY()
-	{
-		return m_center_pixY;
-	}
 
 	void setColorSize(int width, int height)
 	{
 		m_color_width = width;
 		m_color_height = height;
+	}
+
+	void setRenderLevel(int lvl)
+	{
+		m_texLevel = lvl;
 	}
 
 
@@ -321,6 +186,7 @@ private:
 	GLuint m_ViewProjectionID;
 	GLuint m_sliceID;
 	GLuint m_imSizeID;
+	GLuint m_texLevelID;
 
 	GLuint m_getPositionSubroutineID;
 	GLuint m_fromTextureID;
@@ -340,6 +206,8 @@ private:
 	GLuint m_fromTrackID;
 	GLuint m_fromFlowID;
 	GLuint m_fromEdgesID;
+	GLuint m_fromDistanceID;
+	GLuint m_fromQuadtreeID;
 
 	GLuint m_ambientID;
 	GLuint m_lightID;
@@ -360,6 +228,8 @@ private:
 	GLuint m_textureTrack;
 	GLuint m_textureFlow;
 	GLuint m_textureEdges;
+	GLuint m_textureDistance;
+
 
 	int m_screen_height;
 	int m_screen_width;
@@ -370,64 +240,27 @@ private:
 	int m_big_depth_height;
 	int m_big_depth_width;
 
-	float m_render_scale_height;
-	float m_render_scale_width;
 
-	std::pair<int, int> m_anchorMW;
-	std::pair<int, int> m_anchorAS;
-	std::pair<int, int> m_anchorSG;
 
-	std::pair<int, int> m_gui_padding;
 
-	std::vector<float> m_trackedPoints;
-	GLuint m_bufferTrackedPoints;
 
-	glm::mat4 ColorView = glm::translate(glm::mat4(1.0f), glm::vec3(-0.f, -0.f, -0.0f));
+	//glm::mat4 ColorView = glm::translate(glm::mat4(1.0f), glm::vec3(-0.f, -0.f, -0.0f));
 
-	glm::vec4 m_cameraParams;
-	glm::vec4 m_cameraParams_color;
 
-	// k.x = fx, k.y = fy, k.z = cx, k.w = cy, skew = 1
-	glm::mat4 getInverseCameraMatrix(const glm::vec4 & k) { // [col][row]
-		glm::mat4 invK;
-		invK[0][0] = 1.0f / k.x;	invK[1][0] = 0;				invK[2][0] = -k.z / k.x;	invK[3][0] = 0;
-		invK[0][1] = 0;				invK[1][1] = 1.0f / k.y;	invK[2][1] = -k.w / k.y;	invK[3][1] = 0;
-		invK[0][2] = 0;				invK[1][2] = 0;				invK[2][2] = 1;				invK[3][2] = 0;
-		invK[0][3] = 0;				invK[1][3] = 0;				invK[2][3] = 0;				invK[3][3] = 1;
 
-		return invK;
-	}
 
-	glm::mat4 getCameraMatrix(const glm::vec4 & k) {
-		glm::mat4 K;
-
-		K[0][0] = k.x;	K[1][0] = 0;	K[2][0] = k.z;	K[3][0] = 0;
-		K[0][1] = 0;	K[1][1] = k.y;	K[2][1] = k.w;	K[3][1] = 0;
-		K[0][2] = 0;	K[1][2] = 0;	K[2][2] = 1;	K[3][2] = 0;
-		K[0][3] = 0;	K[1][3] = 0;	K[2][3] = 0;	K[3][3] = 1;
-
-		return K;
-	}
 
 
 
 	inline int divup(int a, int b) { return (a % b != 0) ? (a / b + 1) : (a / b); }
 
-	void writePLYFloat(std::vector<float> PC, std::vector<float> NC, const char* FileName);
 
 
 
 
-	bool m_export_ply = false;
-
-	float m_mouse_pos_x;
-	float m_mouse_pos_y;
-	glm::mat4 m_registration_matrix = glm::mat4(1.0f);
 
 
 
-	std::vector<float> m_depthPointsFromBuffer;
-	std::vector<std::pair<int, int>> m_depthPixelPoints2D;
 
 	//cv::Mat rotation_vector; // Rotation in axis-angle form
 	//cv::Mat translation_vector;
@@ -453,7 +286,7 @@ private:
 	glm::mat4 m_view = glm::mat4(1.0f);
 	glm::mat4 m_projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 3000.0f); // some default matrix
 
-	glm::vec3 m_volume_size = glm::vec3(128.0f, 128.0f, 128.0f);
+
 
 	bool m_showDepthFlag = false;
 	bool m_showNormalFlag = false;
@@ -466,36 +299,22 @@ private:
 	bool m_showEdgesFlag = false;
 	bool m_showVolumeSDFFlag = false;
 	bool m_showTrackFlag = false;
+	bool m_showDistanceFlag = false;
 
 
 	const GLint tcOffsetColumns = 5;
 	const GLint tcOffsetRows = 5;
+
 	GLint filterNumberCode = 0;
 	GLint texCoordOffsets[5 * 5 * 2];
+
 	GLuint m_tcOffsetID;
 	GLuint m_contrastID;
 
-	GLuint m_posBufMC;
-	GLuint m_normBufMC;
-	GLuint m_numVerts;
 
-	bool m_selectInitialPoseFlag;
-	float m_center_pixX;
-	float m_center_pixY;
 
-	float m_volumeSDFRenderSlice = 0;
 
-	std::vector<float> m_facePoints;
-	std::vector<float> m_posePoints;
-	std::vector<float> m_handsPoints;
-	GLuint m_bufferFacePoints;
-	GLuint m_bufferPosePoints;
-	GLuint m_bufferHandsPoints;
-	GLuint m_EBO_Pose;
-	std::vector<unsigned int> m_indices_pose;
-	
-	std::vector<unsigned int> m_idxFace, m_idxFaceMask;
-	std::vector<unsigned int> m_idxPose, m_idxPoseMask;
-	std::vector<unsigned int> m_idxHands, m_idxHandsMask;
+
+	int m_texLevel = 0;
 
 };

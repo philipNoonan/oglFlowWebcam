@@ -51,7 +51,7 @@ void jumpFloodAlgorithmInit()
     // https://github.com/diwi/PixelFlow/blob/master/examples/Miscellaneous/DistanceTransform_Demo/DistanceTransform_Demo.java
     // https://github.com/diwi/PixelFlow/blob/master/src/com/thomasdiewald/pixelflow/glsl/Filter/distancetransform.frag
     // http://www.comp.nus.edu.sg/~tants/jfa/i3d06.pdf
-
+    // https://www.shadertoy.com/view/4syGWK
     ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
 
     vec4 tColor = texelFetch(textureInitialRGB, pix, 0);

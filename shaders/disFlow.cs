@@ -172,10 +172,15 @@ float computeSSDMeanNorm(float[8][8] yData)
         }
     }
 
-    return sum_square_diff - sum_diff * sum_diff / float(patch_size * patch_size);
+    float SSDMN = sum_square_diff - sum_diff * sum_diff / float(patch_size * patch_size);
+
+    //if (SSDMN > )
+
+    return SSDMN;
 
 }
 
+// if there SSD > thresh && block contains boundary then we need to redo this for each region
 float processPatchMeanNorm(inout float dst_dUx, inout float dst_dUy, float x_grad_sum, float y_grad_sum, float[8][8] ydata)
 {
     float n = float(patch_size * patch_size);
@@ -305,12 +310,12 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
     float xCoord_init;
     float yCoord_init;
 
-    for (int i = 0; i<patch_size; i++)
+    for (int i = 0; i < patch_size; i++)
     {
-        for (int j = 0; j<patch_size; j++)
+        for (int j = 0; j < patch_size; j++)
         {
-            xCoord_init = ((2.0f * (float(gl_GlobalInvocationID.x) * 4.0f + initFlowXY.x + float(i)) + 1.0f) / (2.0f * float(imSize.x))) / 1.0f;
-            yCoord_init = ((2.0f * (float(gl_GlobalInvocationID.y) * 4.0f + initFlowXY.y + float(j)) + 1.0f) / (2.0f * float(imSize.y))) / 1.0f;
+            xCoord_init = ((2.0f * (float(gl_GlobalInvocationID.x) * patch_size / 2.0f + initFlowXY.x + float(i)) + 1.0f) / (2.0f * float(imSize.x))) / 1.0f;
+            yCoord_init = ((2.0f * (float(gl_GlobalInvocationID.y) * patch_size / 2.0f + initFlowXY.y + float(j)) + 1.0f) / (2.0f * float(imSize.y))) / 1.0f;
         //    y_data_init[i][j] = luminance(textureLod(tex_I1, vec2((float(gl_GlobalInvocationID.x) * 4.0f + initFlowXY.x + float(i)) / float(imSize.x), (float(gl_GlobalInvocationID.y) * 4.0f + initFlowXY.y + float(j)) / float(imSize.y)), level).xyz);
                 if (imageType == 0)
                 {
@@ -340,7 +345,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
     {
         if (iter_outer == 0)
         {
-            // reading from the previous layer enables liner inter for free
+            // reading from the previous layer enables linear inter for free
             prevFlowXY = 2.0 * textureLod(tex_flow_previous, vec2(xCoord, yCoord), level + 1).xy;
             //imageStore(test_texture, ivec2((gl_GlobalInvocationID.x* 4 + psz2), (gl_GlobalInvocationID.y* 4 + psz2)), vec4((initFlowXY.x - prevFlowXY.x)));
         }
@@ -352,12 +357,12 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 
         barrier();
 
-        for (int i = 0; i<patch_size; i++)
+        for (int i = 0; i < patch_size; i++)
         {
-            for (int j = 0; j<patch_size; j++)
+            for (int j = 0; j < patch_size; j++)
             {
-                float xCoord_prev = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + prevFlowXY.x + float(i)) + 1.0) / (2.0 * float(imSize.x)));
-                float yCoord_prev = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + prevFlowXY.y + float(j)) + 1.0) / (2.0 * float(imSize.y)));
+                float xCoord_prev = ((2.0 * (float(gl_GlobalInvocationID.x) * patch_size / 2.0 + prevFlowXY.x + float(i)) + 1.0) / (2.0 * float(imSize.x)));
+                float yCoord_prev = ((2.0 * (float(gl_GlobalInvocationID.y) * patch_size / 2.0 + prevFlowXY.y + float(j)) + 1.0) / (2.0 * float(imSize.y)));
                 if (imageType == 0)
                 {
                     y_data[i][j] = textureLod(tex_I1, vec2(xCoord_prev, yCoord_prev), level).x;
@@ -389,6 +394,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
             Ux = prevFlowXY.x;
             Uy = prevFlowXY.y;
         }
+
 
         //float dir = -1.0f;
 
@@ -467,7 +473,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 
 
 
-        float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
+float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
 
 
         if (abs(detH) < EPS) // some EPS constant
@@ -485,6 +491,9 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 
         float x_grad_sum = inputSum.x;
         float y_grad_sum = inputSum.y;
+
+imageStore(test_texture, pix_sparse, vec4(min_SSD));
+
 
         for (int t = 0; t < level + 4; t++) // CHANE+GE ME TO ITER!!!
         {
@@ -522,7 +531,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
             cur_Uy -= dy;
 
             /* Break when patch distance stops decreasing */
-            if (SSD >= prev_SSD || prev_SSD < 0.3)
+            if (SSD >= prev_SSD || prev_SSD < 0.1)
             {
                     break;
             }
@@ -543,11 +552,15 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
         {
            imageStore(im_S_x_y, pix_sparse, vec4(Ux, Uy, 0, 0));
         }
-        if (prev_SSD > 0.3)
+        if (prev_SSD > 0.1)
         {
-            imageStore(im_S_x_y, pix_sparse, vec4(0, 0, 0, 0)); 
+           //imageStore(im_S_x_y, pix_sparse, vec4(Ux, Uy, 0, 0));
+
         }
-    }
+        
+                  // imageStore(test_texture, pix_sparse, vec4(prev_SSD));
+
+    } // loop
 }
 
 
@@ -559,11 +572,7 @@ void densification()
     // inputs original images i0 i1
     // outputs dense flow
 
-    // for every pixel in the orig image find out the contribution of flow vector for every patch the pixel is on
 
-    // load original images into shared memory
-    // for each pixel, get the int x,y locations of the up to 4 (or 9?? is we use edges + corners....) sparese patches that overlap it ( the paper only looks at 4 overlapping patches)
-    // calc diff between sparse flow warped image linearly interpd i1 at points and i0 
 
     vec2 imSize = vec2(imageSize(flow_texture_x_y).xy);
 

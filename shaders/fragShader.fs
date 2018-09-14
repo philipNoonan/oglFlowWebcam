@@ -7,8 +7,9 @@ layout (binding=2) uniform sampler2D currentTextureTrack;
 layout (binding=3) uniform sampler2D currentTextureFlow;
 layout (binding=4) uniform sampler2D currentTextureColor;
 layout (binding=5) uniform sampler2D currentTextureEdges;
+layout (binding=6) uniform sampler2D currentTextureDistance;
 
-layout (binding=6) uniform isampler3D currentTextureVolume; 
+layout (binding=7) uniform isampler3D currentTextureVolume; 
 layout(binding = 5, rg16i) uniform iimage3D volumeData; // texel access
 
 
@@ -24,6 +25,7 @@ uniform float irHigh = 65536.0f;
 
 uniform float slice;
 
+uniform int texLevel;
 
 subroutine vec4 getColor();
 subroutine uniform getColor getColorSelection;
@@ -38,7 +40,10 @@ vec4 fromDepth()
 subroutine(getColor)
 vec4 fromColor()
 {
-	vec4 tColor = texture(currentTextureColor, vec2(TexCoord));
+    ivec2 texSize = textureSize(currentTextureColor, texLevel);
+	vec4 tColor = texelFetch(currentTextureColor, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
+
+	//vec4 tColor = textureLod(currentTextureColor, vec2(TexCoord), texLevel);
 	return tColor.zyxw;
 }
 
@@ -64,11 +69,11 @@ vec4 fromEdges()
 	float lCol = length(tCol);
 	
 	vec3 rgb;
-	if (lCol > 0.95)
+	if (lCol > 0.065)
 	{
 		rgb = vec3(0.49, 0.976, 1.0);
 	}
-	else if (lCol < 0.96)
+	else if (lCol < 0.066)
 	{
 		rgb = vec3(lCol);
 	}
@@ -127,7 +132,7 @@ subroutine(getColor)
 vec4 fromFlow()
 {
 	int length = 50;
-	vec4 tFlow = textureLod(currentTextureFlow, TexCoord, 0);
+	vec4 tFlow = textureLod(currentTextureFlow, TexCoord, texLevel);
 /*	vec4 myCol = vec4(0,0,0,1);
 	if (tFlow.x == 0 && tFlow.y == 0)
 	{
@@ -204,9 +209,9 @@ vec4 color = vec4(0);
 	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(ang + K.xyz) * 6.0 - K.www);
 
-    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * 0.05);
+    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * (0.05 * (pow(texLevel + 1, 2))));
 
-//	return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
+	//return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
 
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
 	return vec4(1.0 - rgb, mag >= 0.0 ? 1 : 0.01 * mag);
@@ -224,6 +229,27 @@ vec4 fromVolume()
 	//return vec4(1.0, 0.0, 0.0, 1.0);
 }
 
+subroutine(getColor)
+vec4 fromDistance()
+{
+	vec4 tCol = texture(currentTextureDistance, vec2(TexCoord));
+	return vec4(tCol);
+
+}
+
+
+subroutine(getColor)
+vec4 fromQuadtree()
+{
+
+	vec4 tCol = texture(currentTextureDistance, vec2(TexCoord));
+
+
+
+
+	return vec4(tCol);
+
+}
 
 void main()
 {

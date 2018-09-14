@@ -44,7 +44,7 @@ public:
 
 	GLuint getFloodOutputTexture()
 	{
-		return m_texture_jfa_1;
+		return m_texture_output_RGBA;
 	}
 	GLuint getFloodInitialTexture()
 	{
@@ -59,6 +59,7 @@ public:
 	{
 		m_edgeThreshold = thresh;
 	}
+
 
 private:
 
@@ -96,7 +97,7 @@ private:
 	GLuint m_texture_jfa_0;
 	GLuint m_texture_jfa_1;
 	GLuint m_texture_initial_RGB;
-	GLuint m_texture_output_RGB;
+	GLuint m_texture_output_RGBA;
 
 	// parameters
 	int m_texture_width;

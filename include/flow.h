@@ -7,6 +7,8 @@
 #include "glutils.h"
 #include "glslprogram.h"
 
+#include "glhelper.h"
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
@@ -47,6 +49,10 @@ public:
 	{
 		m_numLevels = (int)(log((2 * width) / (4.0 * m_patch_size)) / log(2.0) + 0.5) + 1;
 	}
+	void setCutoff(int cOff)
+	{
+		m_cutoff = (uint32_t)cOff;
+	}
 	//void setTexture(GLuint texID) { m_textureI1 = texID; }
 	void setTexture(unsigned char * imageArray);
 	void setTexture(float * imageArray);
@@ -70,6 +76,10 @@ public:
 	void swapTextures();
 	void jumpFloodCalc();
 
+	// QUADTREE STUFF
+	void buildQuadtree();
+
+
 	GLuint getFlowTexture()
 	{
 		//return m_sumFlow;
@@ -84,6 +94,7 @@ public:
 	{
 		return m_textureI0_grad_x_y;
 	}
+
 	GLuint getTrackedPointsBuffer()
 	{
 		return m_trackedPointsBuffer;
@@ -107,6 +118,7 @@ public:
 	bool firstFrame = true;
 
 private:
+
 
 	cv::Mat I0im, I1im;
 
@@ -140,6 +152,8 @@ private:
 	GLSLProgram variRefineProg;
 	GLSLProgram extKalmanProg;
 	GLSLProgram jumpFloodProg;
+	GLSLProgram hpQuadtreeProg;
+	GLSLProgram hpQuadListProg;
 
 	//Locations
 	/* subroutines */
@@ -173,6 +187,19 @@ private:
 	GLuint m_computeDataTermID;
 	GLuint m_computeSmoothnessTermID;
 	GLuint m_computeSORID;
+
+	// quadtree
+	GLuint m_subroutine_hpQuadtreeID;
+	GLuint m_hpDiscriminatorID;
+	GLuint m_hpBuilderID;
+	GLuint m_bufferPos;
+
+	GLuint m_subroutine_hpQuadlistID;
+	GLuint m_traverseHPLevelID;
+	GLuint m_totalSumID;
+	GLuint m_cutoffID;
+
+	GLuint m_hpLevelID;
 
 	/* uniforms */
 	GLuint m_level_cov_ID;
@@ -257,6 +284,11 @@ private:
 	GLuint m_texture_jfa_0;
 	GLuint m_texture_jfa_1;
 
+	// quadtree
+	GLuint m_texture_hpOriginalData;
+	GLuint m_texture_hpQuadtree;
+
+
 	// parameters
 	int m_texture_width;
 	int m_texture_height;
@@ -269,6 +301,8 @@ private:
 	
 	int swapCounter = 0;
 	bool flipflop = false;
+
+	uint32_t m_cutoff;
 
 	int m_numLevels;// = (int)(log((2 * 1920) / (4.0 * m_patch_size)) / log(2.0) + 0.5) - 1;
 
