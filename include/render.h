@@ -164,6 +164,7 @@ public:
 private:
 
 	GLSLProgram renderProg;
+	GLSLProgram renderFlowLinesProg;
 
 	GLFWwindow * m_window;
 	bool m_show_imgui;

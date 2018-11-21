@@ -144,9 +144,10 @@ void loadImage(ivec2 pos, ivec2 localDataLoc)
     {
         // gauss smoothed
         //localData[localDataLoc.x][localDataLoc.y] = luminance(imageLoad(InputImgUI, pos).xyz);
-        localData[localDataLoc.x][localDataLoc.y] = luminance(imageLoad(InputImgUI, ivec2(pos.x - 1, pos.y - 1)).xyz) * 0.077847f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y - 1)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x + 1, pos.y - 1)).xyz) * 0.077847f +
-                                             luminance(imageLoad(InputImgUI, ivec2(pos.x - 1, pos.y)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y)).xyz) * 0.195346f + luminance(imageLoad(InputImgUI, ivec2(pos.x + 1, pos.y)).xyz) * 0.123317f +
-                                             luminance(imageLoad(InputImgUI, ivec2(pos.x - 1, pos.y + 1)).xyz) * 0.077847f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y + 1)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x + 1, pos.y + 1)).xyz) * 0.077847f;
+        int shift = 1;
+        localData[localDataLoc.x][localDataLoc.y] = luminance(imageLoad(InputImgUI, ivec2(pos.x - shift, pos.y - shift)).xyz) * 0.077847f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y - shift)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x + shift, pos.y - shift)).xyz) * 0.077847f +
+                                             luminance(imageLoad(InputImgUI, ivec2(pos.x - shift, pos.y)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y)).xyz) * 0.195346f + luminance(imageLoad(InputImgUI, ivec2(pos.x + shift, pos.y)).xyz) * 0.123317f +
+                                             luminance(imageLoad(InputImgUI, ivec2(pos.x - shift, pos.y + 1)).xyz) * 0.077847f + luminance(imageLoad(InputImgUI, ivec2(pos.x, pos.y + shift)).xyz) * 0.123317f + luminance(imageLoad(InputImgUI, ivec2(pos.x + shift, pos.y + shift)).xyz) * 0.077847f;
 
     }
     else if (imageType == 1) // rg float 2 

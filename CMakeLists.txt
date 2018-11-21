@@ -38,6 +38,10 @@ find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(imgui REQUIRED)
 
+# To find and use ffmpeg avcodec library
+find_path( AVCODEC_INCLUDE_DIR libavcodec/avcodec.h )
+find_library( AVCODEC_LIBRARY avcodec )
+
 
 file(GLOB_RECURSE SRC "src/*")
 file(GLOB_RECURSE GFX "graphics/*")
@@ -108,7 +112,9 @@ add_dependencies(${PROJECT_NAME} shaders resources)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_PDB_NAME_DEBUG "${PROJECT_NAME}${CMAKE_DEBUG_POSTFIX}")
 
-
+# FFMPEG
+target_include_directories( ${PROJECT_NAME} PUBLIC  ${AVCODEC_INCLUDE_DIR} )
+target_link_libraries( ${PROJECT_NAME}  ${AVCODEC_LIBRARY})
 
 
 target_include_directories(${PROJECT_NAME} PUBLIC "include")

@@ -180,7 +180,7 @@ int videoNumber = 0;
 int videoFrameNumber = 0;
 
 std::vector<std::pair<int, int> > resoPresetPair;
-int resoPreset = 1;
+int resoPreset = 3;
 int imageNumber = 0;
 
 bool changedSource = false;
@@ -189,8 +189,7 @@ float mouseX = 0;
 float mouseY = 0;
 
 
-
-
+std::vector<cv::Mat> videoBuffer(100);
 
 cv::Mat col;// = cv::Mat(1080, 1920, CV_8UC3);
 std::mutex mtx;

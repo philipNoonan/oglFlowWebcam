@@ -195,12 +195,11 @@ float processPatchMeanNorm(inout float dst_dUx, inout float dst_dUy, float x_gra
     int xOffset = int(gl_LocalInvocationID.x) * patch_size / 2;
     int yOffset = int(gl_LocalInvocationID.y) * patch_size / 2;
 
-
     for (int i = xOffset; i < xOffset + patch_size; ++i)
     {
         for (int j = yOffset; j < yOffset + patch_size; ++j)
         {
-            diff = ydata[i - xOffset][j - yOffset] - x_data[i][j]; //SWAPED THESE AROUND
+            diff = ydata[i - xOffset][j - yOffset] - x_data[i][j];
             sum_diff += diff;
             sum_square_diff += diff * diff;
 
@@ -209,8 +208,6 @@ float processPatchMeanNorm(inout float dst_dUx, inout float dst_dUy, float x_gra
 
         }
     }
-
-
 
     dst_dUx = sum_I0x_mul - sum_diff * x_grad_sum / n;
     dst_dUy = sum_I0y_mul - sum_diff * y_grad_sum / n;
@@ -338,10 +335,10 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 
     barrier();
 
-///
-/// LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-/// 
-    for (int iter_outer = 0; iter_outer<level + 4; iter_outer++)
+//
+// LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// 
+    for (int iter_outer = 0; iter_outer<level +2 ; iter_outer++) // the more iterations the slower it becomes, obviously
     {
         if (iter_outer == 0)
         {
@@ -544,7 +541,7 @@ imageStore(test_texture, pix_sparse, vec4(min_SSD));
                      * (more than patch size) then we don't use it. Noticeably improves the robustness.
                      */
         vec2 theVec = vec2(cur_Ux - Ux, cur_Uy - Uy);
-        if (length(theVec) < patch_size)
+        if (length(theVec) < 8)
         {
             imageStore(im_S_x_y, pix_sparse, vec4(cur_Ux, cur_Uy, 0, 0)); 
         }
@@ -599,13 +596,14 @@ void densification()
 
     int i_l, i_u;
     int j_l, j_u;
-    float i_m, j_m, diff;
+    float i_m, j_m, diff, iMean;
 
     i = float(y) / float(imSize.y);
     j = float(x) / float(imSize.x);
 
     /* Iterate through all the patches that overlap the current location (i,j) */
-    for (int is = start_is; is <= end_is; is++)
+    float countSize = 0;
+    for (int is = start_is; is <= end_is; is++, countSize++)
     {
         for (int js = start_js; js <= end_js; js++)
         {
@@ -613,8 +611,9 @@ void densification()
             //float sy_val = sy[is * ws + js];
             //uchar2 i1_vec1, i1_vec2;
 
-            j_m = (2.0 * min(max(j + sx_sy_val.x, 0.0f), float(imSize.x) - 1.0f - EPS) - 1.0) / (2.0 * float(imSize.x));
-            i_m = (2.0 * min(max(i + sx_sy_val.y, 0.0f), float(imSize.y) - 1.0f - EPS) - 1.0) / (2.0 * float(imSize.y));
+            // is this the correct calculation of texture coord?
+            j_m = ((min(max(j + sx_sy_val.x, 0.0f), float(imSize.x) - 1.0f - EPS)));
+            i_m = ((min(max(i + sx_sy_val.y, 0.0f), float(imSize.y) - 1.0f - EPS)));
 
             float i1_val;
             float i0_val;
@@ -630,8 +629,10 @@ void densification()
                 i0_val = luminance(textureLod(tex_I0, vec2(j, i), level).xyz);
             }
 
+            iMean += i1_val;
+
             diff = i1_val - i0_val;
-            coef = 1.0f / max(1.0f, abs(diff));
+            coef = 1 / max(1.0f, abs(diff));
             sum_Ux += coef * sx_sy_val.x;
             sum_Uy += coef * sx_sy_val.y;
             sum_coef += coef;

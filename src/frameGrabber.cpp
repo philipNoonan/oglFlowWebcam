@@ -97,6 +97,7 @@ void FrameGrabber::captureVideoFrameLoop()
 }
 
 
+// black frames appear due to the same frame being present in the original source video - probably due to poor resampling/saving from raw or post processing/conversion
 void FrameGrabber::captureLoop()
 {
 

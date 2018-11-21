@@ -1413,7 +1413,7 @@ bool gFlow::calc(bool useInfrared)
 	  
 	double totalTime = 0;
 
-	for (int level = m_numLevels - 1; level >= 0; level--) 
+	for (int level = m_numLevels - 1; level > -1; level--) 
 	{   
 
 		//glBindTexture(GL_TEXTURE_2D, m_textureS_x_y);

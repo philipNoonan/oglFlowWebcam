@@ -19,13 +19,32 @@ void gRenderInit()
 	//krender.genTexCoordOffsets(1, 1, 1.0f);
 }
 
+void preLoadVideo(int vidNumber)
+{
+	int vidWidth = videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_WIDTH);
+	int vidHeight = videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_HEIGHT);
+
+	int frameNumber = 0;
+	videoBuffer.resize(videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_COUNT) - 50);
+
+
+	while (frameNumber < videoBuffer.size())
+	{
+		videosFromFile[vidNumber].read(videoBuffer[frameNumber]);
+		frameNumber++;
+	}
+
+
+}
+
+
 void searchForMedia()
 {
 	videosFromFile.resize(0);
 	imagesFromFile.resize(0);
 
 	//cv::String pathVideos("videos/*.wmv"); //select only wmv
-	cv::String pathVideos("videos/*.mkv"); //select only mkv
+	cv::String pathVideos("videos/*.mp4"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
 	cv::glob(pathVideos, fnVideos, true); // recurse
@@ -180,7 +199,7 @@ int main(int, char**)
 			{
 				cv::Mat tempCol;
 				videosFromFile[videoNumber].set(CV_CAP_PROP_POS_FRAMES, videoFrameNumber);
-				videoFrameNumber++;
+				videoFrameNumber+=4;
 				if (videoFrameNumber > videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_COUNT) - 50)
 				{
 					gflow.wipeFlow();
@@ -238,7 +257,7 @@ int main(int, char**)
 
 			gflow.calc(false);
 
-			gflow.buildQuadtree();
+			//gflow.buildQuadtree();
 
 
 			grender.setFlowTexture(gflow.getFlowTexture());
@@ -249,16 +268,16 @@ int main(int, char**)
 
 
 
-			cv::Mat totflow = cv::Mat(colorHeight, colorWidth, CV_32FC2);
+			//cv::Mat totflow = cv::Mat(colorHeight, colorWidth, CV_32FC2);
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, gflow.getFlowTexture());
-			glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, totflow.data);// this is importnant, you are using GL_RED_INTEGETER!!!!
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glActiveTexture(0);
+			//glActiveTexture(GL_TEXTURE0);
+			//glBindTexture(GL_TEXTURE_2D, gflow.getFlowTexture());
+			//glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, totflow.data);// this is importnant, you are using GL_RED_INTEGETER!!!!
+			//glBindTexture(GL_TEXTURE_2D, 0);
+			//glActiveTexture(0);
 
-			cv::Mat tofl[2];
-			cv::split(totflow, tofl);
+			//cv::Mat tofl[2];
+			//cv::split(totflow, tofl);
 
 			//cv::imshow("wwee", tofl[0] - tofl[1]);
 			//cv::imshow("dwerwev", tofl[1]); 
@@ -274,6 +293,8 @@ int main(int, char**)
 			//hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
 			//cv::merge(hsv_split, 3, hsv);
 			//cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
+
+
 			//cv::Mat outrgb, outmix;
 			//rgb.convertTo(outrgb, CV_8UC4, 255);
 			//cv::addWeighted(outrgb, 0.7, col, 0.3, 1.0, outmix);
@@ -312,7 +333,7 @@ int main(int, char**)
 				grender.setViewMatrix(xRot, yRot, zRot, xTran, yTran, zTran);
 				grender.setProjectionMatrix();
 
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT);
 				glEnable(GL_DEPTH_TEST);
 
 			grender.Render(false);
@@ -432,6 +453,7 @@ int main(int, char**)
 				}
 				
 
+				if (ImGui::Button("PreLoad")) preLoadVideo(videoNumber);
 
 
 

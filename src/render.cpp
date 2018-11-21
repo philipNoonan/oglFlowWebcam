@@ -12,7 +12,7 @@ GLFWwindow * gRender::loadGLFWWindow()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_REFRESH_RATE, 30);
+	//glfwWindowHint(GLFW_REFRESH_RATE, 15);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 
@@ -51,6 +51,10 @@ void gRender::compileAndLinkShader()
 		renderProg.compileShader("shaders/fragShader.fs");
 		renderProg.link();
 
+		renderFlowLinesProg.compileShader("shaders/vertShaderFL.vs");
+		renderFlowLinesProg.compileShader("shaders/geomShaderFL.gs");
+		renderFlowLinesProg.compileShader("shaders/fragShaderFL.fs");
+		renderFlowLinesProg.link();
 
 	}
 	catch (GLSLProgramException &e) {
@@ -336,88 +340,108 @@ void gRender::setProjectionMatrix()
 
 void gRender::renderLiveVideoWindow(bool useInfrared)
 {
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	renderProg.use();
-	glm::mat4 MVP;
+	//if (m_showFlowFlag)
+	//{
+	//	renderFlowLinesProg.use();
+	//	glBindVertexArray(m_VAO);
+
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+
+	//	glDrawArraysInstanced(GL_POINTS, 0, 1, 1920*1080);
 
 
-	if (m_showColorFlag)
-	{
-		glm::vec2 imageSize;
-
-		imageSize = glm::vec2(m_color_width, m_color_height);
-		MVP = m_projection * m_view * m_model_color;
-
-		//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-		//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-		glBindVertexArray(m_VAO);
-
-		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
-		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromColorID);
-		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
-		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-		glUniform1i(m_texLevelID, m_texLevel);
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
-		  
-		//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-		//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	}
-
-	if (m_showEdgesFlag)
-	{
-		glm::vec2 imageSize;
-
-		imageSize = glm::vec2(m_color_width, m_color_height);
-		MVP = m_projection * m_view * m_model_color;
-
-		glBindVertexArray(m_VAO);
-		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
-		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromEdgesID);
-		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
-		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	}
-
-	if (m_showFlowFlag)
-	{
-		glm::vec2 imageSize;
-
-		imageSize = glm::vec2(m_color_width, m_color_height);
-		MVP = m_projection * m_view * m_model_color;
-
-		glBindVertexArray(m_VAO);
-		MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 5.0f));
-		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
-		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromFlowID);
-		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
-		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-		glUniform1i(m_texLevelID, m_texLevel);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	}
-
-	if (m_showDistanceFlag)
-	{
-		glm::vec2 imageSize;
-
-		imageSize = glm::vec2(m_color_width, m_color_height);
-		MVP = m_projection * m_view * m_model_color;
-
-		glBindVertexArray(m_VAO);
-		MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 5.0f));
-		glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
-		glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromDistanceID);
-		//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
-		glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
-		glUniform1i(m_texLevelID, m_texLevel);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
-	}
+	//}
+	//else
+	//{
+
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		renderProg.use();
+		glm::mat4 MVP;
+
+
+		if (m_showColorFlag)
+		{
+			glm::vec2 imageSize;
+
+			imageSize = glm::vec2(m_color_width, m_color_height);
+			MVP = m_projection * m_view * m_model_color;
+
+			//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+			//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+			glBindVertexArray(m_VAO);
+
+			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
+			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromColorID);
+			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
+			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+			glUniform1i(m_texLevelID, m_texLevel);
+
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+			//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+			//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		}
+
+		if (m_showEdgesFlag)
+		{
+			glm::vec2 imageSize;
+
+			imageSize = glm::vec2(m_color_width, m_color_height);
+			MVP = m_projection * m_view * m_model_color;
+
+			glBindVertexArray(m_VAO);
+			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
+			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromEdgesID);
+			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
+
+		if (m_showFlowFlag)
+		{
+			glm::vec2 imageSize;
+
+			imageSize = glm::vec2(m_color_width, m_color_height);
+			MVP = m_projection * m_view * m_model_color;
+
+			glBindVertexArray(m_VAO);
+			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
+			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromFlowID);
+			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
+			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+			glUniform1i(m_texLevelID, m_texLevel);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
+
+		if (m_showDistanceFlag)
+		{
+			glm::vec2 imageSize;
+
+			imageSize = glm::vec2(m_color_width, m_color_height);
+			MVP = m_projection * m_view * m_model_color;
+
+			glBindVertexArray(m_VAO);
+			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 5.0f));
+			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
+			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromDistanceID);
+			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
+			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+			glUniform1i(m_texLevelID, m_texLevel);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
+		}
+
+
+	//} // the attempt at geometry rendering lines
 
 
 

@@ -132,7 +132,13 @@ subroutine(getColor)
 vec4 fromFlow()
 {
 	int length = 50;
-	vec4 tFlow = textureLod(currentTextureFlow, TexCoord, texLevel);
+	//vec4 tFlow = textureLod(currentTextureFlow, TexCoord, texLevel);
+	ivec2 texSize = textureSize(currentTextureColor, texLevel);
+	vec4 tColor = texelFetch(currentTextureColor, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);    
+
+		vec4 tFlow = texelFetch(currentTextureFlow, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
+
+		//return vec4(tFlow.xxx, 1.0);
 /*	vec4 myCol = vec4(0,0,0,1);
 	if (tFlow.x == 0 && tFlow.y == 0)
 	{
@@ -213,8 +219,15 @@ vec4 color = vec4(0);
 
 	//return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
 
+	//if (mag < 1.0f)
+	//{
+	//
+	//}
+
+
+
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
-	return vec4(1.0 - rgb, mag >= 0.0 ? 1 : 0.01 * mag);
+	return vec4(1.0 - rgb, mag >= 0.01 ? 1 : 0.01 * mag);
 	//	return vec4(1.0 - rgb, 0.5);
 
 }
