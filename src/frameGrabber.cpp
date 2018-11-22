@@ -103,7 +103,7 @@ void FrameGrabber::captureLoop()
 
 	if (!m_cap.isOpened())
 	{
-		m_cap.open(0);
+		m_cap.open(2);
 	}
 	m_cap.set(CV_CAP_PROP_FRAME_WIDTH, m_colorWidth);
 	m_cap.set(CV_CAP_PROP_FRAME_HEIGHT, m_colorHeight);

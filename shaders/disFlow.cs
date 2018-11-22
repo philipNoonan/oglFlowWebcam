@@ -39,12 +39,12 @@ layout(std430, binding = 7) buffer trackedPointsBuf
 uniform float valA;
 uniform float valB;
 
-uniform int patch_size = 8;
-uniform int patch_stride = 4;
+int patch_size = 8;
+int patch_stride = 4;
 
 //uniform int num_inner_iter = 5;
-uniform float INF = 1e10f;
-uniform float EPS = 0.001f;
+float INF = 1e10f;
+float EPS = 0.001f;
 uniform int level;
 uniform int iter;
 uniform int trackWidth;
@@ -338,7 +338,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 //
 // LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // 
-    for (int iter_outer = 0; iter_outer<level +2 ; iter_outer++) // the more iterations the slower it becomes, obviously
+    for (int iter_outer = 0; iter_outer<level +4 ; iter_outer++) // the more iterations the slower it becomes, obviously
     {
         if (iter_outer == 0)
         {
@@ -598,8 +598,8 @@ void densification()
     int j_l, j_u;
     float i_m, j_m, diff, iMean;
 
-    i = float(y) / float(imSize.y);
-    j = float(x) / float(imSize.x);
+    i = float(y);// / float(imSize.y);
+    j = float(x);// / float(imSize.x);
 
     /* Iterate through all the patches that overlap the current location (i,j) */
     float countSize = 0;
@@ -620,8 +620,8 @@ void densification()
 
             if (imageType == 0)
             {
-                i1_val = textureLod(tex_I1, vec2(j_m, i_m), level).x;
-                i0_val = textureLod(tex_I0, vec2(j, i), level).x;
+                i1_val = textureLod(tex_I1, vec2(j_m / float(imSize.x), i_m / float(imSize.y)), level).x;
+                i0_val = textureLod(tex_I0, vec2(j / float(imSize.x), i / float(imSize.y)), level).x;
             }
             else if (imageType == 1)
             {

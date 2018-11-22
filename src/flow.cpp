@@ -1400,7 +1400,6 @@ void gFlow::jumpFloodCalc()
 bool gFlow::calc(bool useInfrared) 
 {   
 	  
-	glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
 
 	for (int level = 0; level <= m_numLevels; level++)
 		computeSobel(level, useInfrared);
@@ -1427,15 +1426,17 @@ bool gFlow::calc(bool useInfrared)
 		patchInverseSearch(level, useInfrared);   
 
 		    
-		      
+
 		 
-		densification(level);      
 
 		 
 		  
 		  
 		if (level == 0) // dont need to densify finest level?   
 		{
+
+			glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
+
 			//variationalRefinement(level); // opencv, slow
 
 			//variRef(level);  // mine, broken ish  slower   
@@ -1454,7 +1455,8 @@ bool gFlow::calc(bool useInfrared)
 
 		}
 		  
-		 
+		densification(level);
+
 		 
 		                                     
 	}        
@@ -1475,6 +1477,8 @@ bool gFlow::calc(bool useInfrared)
 	GLuint64 elapsed;
 	glGetQueryObjectui64vEXT(timeQuery[0], GL_QUERY_RESULT, &elapsed);
 	totalTime += elapsed / 1000000.0;
+
+	std::cout << totalTime << std::endl;
 
 	int level = 0;
 		glCopyImageSubData(m_textureU_x_y, GL_TEXTURE_2D, level, 0, 0, 0,
