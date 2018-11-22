@@ -155,6 +155,8 @@ private:
 	GLSLProgram hpQuadtreeProg;
 	GLSLProgram hpQuadListProg;
 
+	GLSLProgram densifyRasterProg;
+
 	//Locations
 	/* subroutines */
 	GLuint m_subroutine_SobelID;

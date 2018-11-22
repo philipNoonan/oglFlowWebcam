@@ -215,7 +215,7 @@ vec4 color = vec4(0);
 	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(ang + K.xyz) * 6.0 - K.www);
 
-    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * (0.05 * (pow(texLevel + 1, 2))));
+    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * ((texLevel + 1.0) / 16.0));
 
 	//return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
 
@@ -227,7 +227,7 @@ vec4 color = vec4(0);
 
 
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
-	return vec4(1.0 - rgb, mag >= 1.0 ? 1 : 0);
+	return vec4(1.0 - rgb, mag > 1.0 ? 1.0 : 0.0);
 	//	return vec4(1.0 - rgb, 0.5);
 
 }

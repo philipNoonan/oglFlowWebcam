@@ -103,6 +103,9 @@ public:
 	void setFlowImageRenderPosition(int height, int width, float vertFov);
 	void setViewMatrix(float xRot, float yRot, float zRot, float xTran, float yTran, float zTran);
 	void setProjectionMatrix();
+
+
+	void createOffscreenFramebuffer();
 	//void setDepthTextureProjectionMatrix();
 	//void setColorTextureProjectionMatrix();
 	//void setViewport(int x, int y, int w, int h);
@@ -176,6 +179,13 @@ private:
 	std::vector<float> m_depth_vert;
 	std::vector<float> m_vertices;
 	std::vector<unsigned int> m_indices;
+
+	// Offscreen rendering for densifiction
+	GLuint m_FBO_FLOW;
+	GLuint m_VAO_FLOW;
+	GLuint m_VBO_FLOW;
+	GLuint m_textureDensifiedFlow;
+	GLuint m_RBO_FLOW;
 
 	GLuint m_VAO_MC;
 	GLuint m_VBO_Vert_MC;

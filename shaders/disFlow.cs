@@ -338,7 +338,7 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
 //
 // LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // 
-    for (int iter_outer = 0; iter_outer<level +4 ; iter_outer++) // the more iterations the slower it becomes, obviously
+    for (int iter_outer = 0; iter_outer<level +2 ; iter_outer++) // the more iterations the slower it becomes, obviously
     {
         if (iter_outer == 0)
         {
@@ -393,77 +393,77 @@ float yCoord = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2)) + 1.
         }
 
 
-        //float dir = -1.0f;
+//        float dir = -1.0f;
 
-        //if (iter_outer % 2 != 0)
-        //{
-        //    dir = 1.0f;
-        //}
+//        if (iter_outer % 2 != 0)
+//        {
+//            dir = 1.0f;
+//        }
 
-        //for (int i = 0; i < patch_size; i++)
-        //{
-        //    for (int j = 0; j < patch_size; j++)
-        //    {
-        //         float xCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + dir + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
-        //         float yCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
-        //        if (imageType == 0)
-        //        {
-        //            y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).x;
-        //        }
-        //        else if (imageType == 1)
-        //        {
-        //            y_data[i][j] = luminance(textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).xyz);
-        //        }
+//        for (int i = 0; i<patch_size; i++)
+//        {
+//            for (int j = 0; j<patch_size; j++)
+//            {
+//                float xCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + dir + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
+//                float yCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
+//                if (imageType == 0)
+//                {
+//                    y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).x;
+//                }
+//                else if (imageType == 1)
+//                {
+//                    y_data[i][j] = luminance(textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).xyz);
+//                }
 
-        //    }
-        //}
+//            }
+//        }
 
-        //barrier();
+//        barrier();
 
-        //float spatial_x_SSD = computeSSDMeanNorm(y_data);
+//float spatial_x_SSD = computeSSDMeanNorm(y_data);
 
-        //barrier();
+//barrier();
 
-        //if (spatial_x_SSD<min_SSD)
-        //{
-        //    min_SSD = spatial_x_SSD;
-        //    Ux = Ux + dir;
-        //}
+//        if (spatial_x_SSD<min_SSD)
+//        {
+//            min_SSD = spatial_x_SSD;
+//            Ux = Ux + dir;
+//        }
         
-        //barrier();
+//        barrier();
 
-        //for (int i = 0; i < patch_size; i++)
-        //{
-        //    for (int j = 0; j < patch_size; j++)
-        //    {
-        //            float xCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
-        //            float yCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + dir + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
-        //        if (imageType == 0)
-        //        {
-        //            y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).x;
-        //        }
-        //        else if (imageType == 1)
-        //        {
-        //            y_data[i][j] = luminance(textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).xyz);
-        //        }
-        //    }
-        //}
+//for (int i = 0; i<patch_size; i++)
+//{
+//    for (int j = 0; j<patch_size; j++)
+//    {
+//            float xCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
+//float yCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + dir + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
+//        if (imageType == 0)
+//        {
+//            y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).x;
+//        }
+//        else if (imageType == 1)
+//        {
+//            y_data[i][j] = luminance(textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).xyz);
+//        }
+//    }
+//}
 
-        //barrier();
+//barrier();
 
-        //float spatial_y_SSD = computeSSDMeanNorm(y_data);
+//float spatial_y_SSD = computeSSDMeanNorm(y_data);
 
-        //barrier();
+//barrier();
 
-        //if (spatial_y_SSD<min_SSD)
-        //{
-        //     Uy = Uy + dir;
-        //}
+//if (spatial_y_SSD<min_SSD)
+//{
+//     Uy = Uy + dir;
+//}
 
 
-        //imageStore(im_S_x_y, pix_sparse, vec4(Ux, Uy, 0, 0));
+//imageStore(im_S_x_y, pix_sparse, vec4(Ux, Uy, 0, 0));
 
-        float cur_Ux = Ux;
+float cur_Ux = Ux;
         float cur_Uy = Uy;
 
 
@@ -541,7 +541,7 @@ imageStore(test_texture, pix_sparse, vec4(min_SSD));
                      * (more than patch size) then we don't use it. Noticeably improves the robustness.
                      */
         vec2 theVec = vec2(cur_Ux - Ux, cur_Uy - Uy);
-        if (length(theVec) < 8)
+        if (length(theVec) < 11.314)
         {
             imageStore(im_S_x_y, pix_sparse, vec4(cur_Ux, cur_Uy, 0, 0)); 
         }
@@ -625,8 +625,8 @@ void densification()
             }
             else if (imageType == 1)
             {
-                i1_val = luminance(textureLod(tex_I1, vec2(j_m, i_m), level).xyz);
-                i0_val = luminance(textureLod(tex_I0, vec2(j, i), level).xyz);
+                i1_val = luminance(textureLod(tex_I1, vec2(j_m / float(imSize.x), i_m / float(imSize.y)), level).xyz);
+                i0_val = luminance(textureLod(tex_I0, vec2(j / float(imSize.x), i / float(imSize.y)), level).xyz);
             }
 
             iMean += i1_val;
@@ -641,6 +641,7 @@ void densification()
 
 
     imageStore(flow_texture_x_y, ivec2(x, y), vec4(sum_Ux / sum_coef, sum_Uy / sum_coef, 0, 0));
+    //imageStore(flow_texture_x_y, ivec2(x, y), vec4(iMean / countSize, sum_Uy / sum_coef, 0, 0));
 
 
 

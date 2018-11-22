@@ -12,7 +12,7 @@ GLFWwindow * gRender::loadGLFWWindow()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_REFRESH_RATE, 15);
+	//glfwWindowHint(GLFW_REFRESH_RATE, 5);
 	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 
@@ -170,8 +170,41 @@ void gRender::allocateBuffers()
 	//// TexCoord attribute for Depth
 	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(5);
-
 	glBindVertexArray(0);
+
+
+
+	// FOR FLOW DENSIFICATION
+	glGenVertexArrays(1, &m_VAO_FLOW);
+	glGenBuffers(1, &m_VBO_FLOW);
+	glBindVertexArray(m_VAO_FLOW);
+	glBindBuffer(GL_ARRAY_BUFFER, m_VBO_FLOW);
+	glBufferData(GL_ARRAY_BUFFER, m_standard_verts.size() * sizeof(float), &m_standard_verts[0], GL_DYNAMIC_DRAW);
+	glBindVertexArray(0);
+
+
+}
+
+void gRender::createOffscreenFramebuffer()
+{
+	glGenFramebuffers(1, &m_FBO_FLOW);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO_FLOW);
+
+	glGenTextures(1, &m_textureDensifiedFlow);
+	glBindTexture(GL_TEXTURE_2D, m_textureDensifiedFlow);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, 960, 540, 0, GL_RG, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_textureDensifiedFlow, 0);
+
+	glGenRenderbuffers(1, &m_RBO_FLOW);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_RBO_FLOW);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 960, 540); // use a single renderbuffer object for both a depth AND stencil buffer.
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO_FLOW); // now actually attach it
+	// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
 
@@ -342,18 +375,19 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 {
 	//if (m_showFlowFlag)
 	//{
-	//	renderFlowLinesProg.use();
-	//	glBindVertexArray(m_VAO);
+		//renderFlowLinesProg.use();
+		//glBindVertexArray(m_VAO_FLOW);
 
-	//	glActiveTexture(GL_TEXTURE0);
-	//	glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, m_textureFlow);
 
-	//	glDrawArraysInstanced(GL_POINTS, 0, 1, 1920*1080);
+		//glDrawArraysInstanced(GL_POINTS, 0, 1, 1920*1080);
 
 
 
 
 	//}
+
 	//else
 	//{
 

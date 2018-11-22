@@ -27,6 +27,11 @@ void gFlow::compileAndLinkShader()
 	//jumpFloodProg.compileShader("shaders/jumpFlood.cs");
 	//jumpFloodProg.link();
 	 
+	densifyRasterProg.compileShader("shaders/vertShaderDensify.vs");
+	densifyRasterProg.compileShader("shaders/fragShaderDensify.fs");
+    densifyRasterProg.link();
+
+
 	}            
 	catch (GLSLProgramException &e) {        
 		std::cerr << e.what() << std::endl;           
@@ -1101,7 +1106,7 @@ void gFlow::variRef(int level)
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	  
 
-	for (int inner_iter = 0; inner_iter < 2; inner_iter++) // this is a problem, < 1 or < level + 1
+	for (int inner_iter = 0; inner_iter < level + 1; inner_iter++) // this is a problem, < 1 or < level + 1
 	{
 
 		sobelProg.use();
@@ -1400,6 +1405,7 @@ void gFlow::jumpFloodCalc()
 bool gFlow::calc(bool useInfrared) 
 {   
 	  
+	glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
 
 	for (int level = 0; level <= m_numLevels; level++)
 		computeSobel(level, useInfrared);
@@ -1428,14 +1434,16 @@ bool gFlow::calc(bool useInfrared)
 		    
 
 		 
+		densification(level);
 
-		 
+		//variRef(level);  // mine, broken ish  slower   
+
 		  
 		  
-		if (level == 0) // dont need to densify finest level?   
+		if (level != 0) // dont need to densify finest level?   
 		{
 
-			glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
+			//variRef(level);  // mine, broken ish  slower   
 
 			//variationalRefinement(level); // opencv, slow
 
@@ -1455,7 +1463,6 @@ bool gFlow::calc(bool useInfrared)
 
 		}
 		  
-		densification(level);
 
 		 
 		                                     
