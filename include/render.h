@@ -13,12 +13,13 @@
 //#include "shader.hpp"
 
 
-//#include "opencv2/core/utility.hpp"
-//#include "opencv2/opencv.hpp"
-//#include "opencv2/imgproc/imgproc.hpp"
-//#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/core/utility.hpp"
+#include "opencv2/opencv.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 
+#include "glhelper.h"
 
 
 #include <iostream>
@@ -83,7 +84,9 @@ public:
 	void setLocations();
 	void setVertPositions();
 	void allocateBuffers();
+	void allocateTextures();
 	void setTextures(GLuint colorTex, GLuint edgesTex);
+	void setBuffers(GLuint quadlist);
 	void setFlowTexture(GLuint flowTex);
 	void setDistanceTexture(GLuint distTex)
 	{
@@ -97,7 +100,7 @@ public:
 	//void setupComputeFBO();
 
 	// The correcter way 
-	void setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance);
+	void setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance, bool showQuads);
 	void setBuffersForRendering(float * depthArray, float * bigDepthArray, float * colorArray, float * infraArray, unsigned char * flowPtr);
 	void setColorImageRenderPosition(float vertFov);
 	void setFlowImageRenderPosition(int height, int width, float vertFov);
@@ -146,7 +149,10 @@ public:
 		m_vertFov = fov;
 	}
 
-
+	void setQuadlistCount(uint32_t cnt)
+	{
+		m_quadlistCount = cnt;
+	}
 
 
 
@@ -199,6 +205,8 @@ private:
 	GLuint m_imSizeID;
 	GLuint m_texLevelID;
 
+	GLuint m_MvpFlowID;
+
 	GLuint m_getPositionSubroutineID;
 	GLuint m_fromTextureID;
 	GLuint m_fromPosition4DID;
@@ -218,6 +226,7 @@ private:
 	GLuint m_fromFlowID;
 	GLuint m_fromEdgesID;
 	GLuint m_fromDistanceID;
+	GLuint m_fromQuadlistID;
 	GLuint m_fromQuadtreeID;
 
 	GLuint m_ambientID;
@@ -240,6 +249,11 @@ private:
 	GLuint m_textureFlow;
 	GLuint m_textureEdges;
 	GLuint m_textureDistance;
+
+	GLuint m_bufferQuadlist;
+
+	GLuint m_texturePreviousColour;
+	int frameCount = 0;
 
 
 	int m_screen_height;
@@ -311,6 +325,7 @@ private:
 	bool m_showVolumeSDFFlag = false;
 	bool m_showTrackFlag = false;
 	bool m_showDistanceFlag = false;
+	bool m_showQuadsFlag = false;
 
 
 	const GLint tcOffsetColumns = 5;
@@ -322,7 +337,7 @@ private:
 	GLuint m_tcOffsetID;
 	GLuint m_contrastID;
 
-
+	uint32_t m_quadlistCount;
 
 
 

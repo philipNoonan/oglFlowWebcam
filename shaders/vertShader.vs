@@ -15,6 +15,8 @@ layout (location = 8) in vec3 facePoints;
 layout (location = 9) in vec3 posePoints; 
 layout (location = 10) in vec3 handsPoints; 
 
+layout (location = 11) in vec4 quadlist; 
+
 //layout (std430, binding = 7) buffer trackedPoints; 
 
 uniform mat4 model;
@@ -81,6 +83,35 @@ vec4 fromHandsPoints2D()
     gl_PointSize = 20;//
 	zDepth = handsPoints.z * 10.0f;
 	return vec4(MVP * vec4(handsPoints.x, imSize.y - handsPoints.y, 0.0f, 1.0f));
+}
+
+subroutine(getPosition)
+vec4 fromQuadlist()
+{
+
+	// uint xPos = (octlist & 4286578688) >> 23;
+	// uint yPos = (octlist & 8372224) >> 14;
+	// uint zPos = (octlist & 16352) >> 5;
+	// uint lod = (octlist & 31);
+
+	uint xPos = uint(quadlist.x);
+	uint yPos = uint(quadlist.y);
+	uint lod = uint(quadlist.z);
+
+
+	float quadSideLength = float(pow(2, lod)) ; //
+
+	vec2 origin = ((vec2(xPos, yPos) * quadSideLength) + (quadSideLength * 0.5f)); // 
+
+	gl_PointSize = (quadSideLength) - 0.1f;
+
+	 
+	vec4 pos = vec4(MVP * vec4(origin, 0.0f, 1.0f));
+
+	gl_PointSize = quadSideLength;//pos.x / float(origin.x) * quadSideLength;
+
+	return vec4(pos.x, 1.0 - pos.y, pos.z, pos.w);
+
 }
 
 void main()

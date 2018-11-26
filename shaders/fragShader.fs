@@ -90,6 +90,22 @@ vec4 fromPoints()
 	return vec4(0.03f, 0.98, 0.02f, 1.0);
 }
 
+subroutine(getColor)
+vec4 fromQuadtree()
+{
+	//float u = (2.0 * float(gl_FragCoord.x)) / 1600.0f - 1.0f; //1024.0f is the window resolution, change this to a uniform
+    //float v = (2.0 * float(gl_FragCoord.y)) / 900.0f - 1.0f;
+
+	float u = float(gl_FragCoord.x) / 960.0f; //1024.0f is the window resolution, change this to a uniform
+    float v = float(gl_FragCoord.y) / 540.0f;
+
+	vec4 tFlow = textureLod(currentTextureFlow, vec2(u / 1.6667, 1.0 - v / 1.6667), 0);
+
+	return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
+
+	return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
 int ncols = 0;
 int MAXCOLS = 60;
 int colorwheel[60][3];
@@ -134,11 +150,19 @@ vec4 fromFlow()
 	int length = 50;
 	//vec4 tFlow = textureLod(currentTextureFlow, TexCoord, texLevel);
 	ivec2 texSize = textureSize(currentTextureColor, texLevel);
-	vec4 tColor = texelFetch(currentTextureColor, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);    
+			vec4 tFlow = texelFetch(currentTextureFlow, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
 
-		vec4 tFlow = texelFetch(currentTextureFlow, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
+	//vec4 tColor = texelFetch(currentTextureColor, ivec2((TexCoord.x * texSize.x) + tFlow.x, (TexCoord.y * texSize.y) + tFlow.y), texLevel);    
 
-		//return vec4(tFlow.xxx, 1.0);
+
+
+		//return tColor.zyxw;
+
+		//if (abs(tFlow.x) < 1.0 || abs(tFlow.y) < 1.0)
+		//{
+		//	tFlow = 2.0 * texelFetch(currentTextureFlow, ivec2(TexCoord.x * texSize.x / 2, TexCoord.y * texSize.y / 2), texLevel + 1);
+		//}
+		//return vec4(abs(tFlow.xxx), 1.0);
 /*	vec4 myCol = vec4(0,0,0,1);
 	if (tFlow.x == 0 && tFlow.y == 0)
 	{
@@ -251,18 +275,12 @@ vec4 fromDistance()
 }
 
 
-subroutine(getColor)
-vec4 fromQuadtree()
-{
-
-	vec4 tCol = texture(currentTextureDistance, vec2(TexCoord));
-
-
-
-
-	return vec4(tCol);
-
-}
+//subroutine(getColor)
+//vec4 fromQuadtree()
+//{
+//	vec4 tCol = texture(currentTextureDistance, vec2(TexCoord));
+//	return vec4(tCol);
+//}
 
 void main()
 {

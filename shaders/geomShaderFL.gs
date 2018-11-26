@@ -12,7 +12,7 @@ void GenerateLine(int index)
 {
     gl_Position = gl_in[index].gl_Position;
     EmitVertex();
-    gl_Position = gl_in[index].gl_Position + vec4(gs_in[index].flow.x / 1920.0f, gs_in[index].flow.y / 1080.0f, 0.0, 0.0) * MAGNITUDE;
+    gl_Position = gl_in[index].gl_Position + vec4(gs_in[index].flow.x, gs_in[index].flow.y, 0.0, 0.0) * MAGNITUDE;
     EmitVertex();
     EndPrimitive();
 }

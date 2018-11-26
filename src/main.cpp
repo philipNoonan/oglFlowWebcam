@@ -12,11 +12,14 @@ void gRenderInit()
 	grender.compileAndLinkShader();
 	grender.setColorSize(colorWidth, colorHeight);
 
+	grender.setBuffers(gflow.getQuadList());
+
 	grender.setLocations();
 	grender.setVertPositions();
 	grender.allocateBuffers();
+	grender.allocateTextures();
 	grender.setTextures(gflow.getColorTexture(), gflow.getEdgesTexture()); //needs texture uints from gfusion init
-	//krender.genTexCoordOffsets(1, 1, 1.0f);
+//krender.genTexCoordOffsets(1, 1, 1.0f);
 }
 
 void preLoadVideo(int vidNumber)
@@ -119,6 +122,14 @@ void resetFlowSize()
 	changedSource = false;
 }
 
+void showImagePairs()
+{
+
+
+
+
+
+}
 
 
 int main(int, char**)
@@ -256,9 +267,10 @@ int main(int, char**)
 
 
 			gflow.calc(false);
+			//gflow.track();
 
-			//gflow.buildQuadtree();
-
+			gflow.buildQuadtree();
+			grender.setQuadlistCount(gflow.getQuadlistCount());
 
 			grender.setFlowTexture(gflow.getFlowTexture());
 
@@ -324,7 +336,7 @@ int main(int, char**)
 			glfwPollEvents();
 			ImGui_ImplGlfwGL3_NewFrame();
 
-			grender.setRenderingOptions(showDepthFlag, showBigDepthFlag, showInfraFlag, showColorFlag, showLightFlag, showPointFlag, showFlowFlag, showEdgesFlag, showNormalFlag, showVolumeFlag, showTrackFlag, showDistanceFlag);
+			grender.setRenderingOptions(showDepthFlag, showBigDepthFlag, showInfraFlag, showColorFlag, showLightFlag, showPointFlag, showFlowFlag, showEdgesFlag, showNormalFlag, showVolumeFlag, showTrackFlag, showDistanceFlag, showQuadsFlag);
 
 				grender.setColorImageRenderPosition(vertFov);
 
@@ -456,6 +468,7 @@ int main(int, char**)
 				if (ImGui::Button("PreLoad")) preLoadVideo(videoNumber);
 
 
+				if (ImGui::Button("Show Image Pairs")) showImagePairs();
 
 
 
@@ -467,7 +480,7 @@ int main(int, char**)
 				if (ImGui::Button("Show Point")) showPointFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showPointFlag); ImGui::SameLine(); if (ImGui::Button("Show Edges")) showEdgesFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showEdgesFlag);
 
 				//if (ImGui::Button("Show flood")) showFloodFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showFloodFlag);
-				if (ImGui::Button("Show flood")) showDistanceFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showDistanceFlag);
+				if (ImGui::Button("Show flood")) showDistanceFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showDistanceFlag); ImGui::SameLine(); if (ImGui::Button("Show Quads")) showQuadsFlag ^= 1; ImGui::SameLine(); ImGui::Checkbox("", &showQuadsFlag);
 
 				ImGui::Separator();
 				ImGui::Text("Other Options");

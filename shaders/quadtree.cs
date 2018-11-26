@@ -65,13 +65,13 @@ bool hpDiscriminator()
     vec3 readPix = vec3(gl_GlobalInvocationID.xyz);
 
     //float inputValue = texelFetch(originalDataVolumeTexture, ivec2(readPix.xy), 0).x;
-    vec2 inputVec2 = texelFetch(originalDataVolumeTextureRG, ivec2(texSize.x / 2 - 256 + readPix.x, texSize.y / 2 - 256 + readPix.y), 0).xy;
+    vec2 inputVec2 = texelFetch(originalDataVolumeTextureRG, ivec2(readPix.x, readPix.y), 0).xy;
 
     float inputValue = length(inputVec2);
 
     float writeValue;
 
-    if (inputValue < 0.01f)
+    if (inputValue < 0.05f)
     {
         writeValue = -1.0f;
     }

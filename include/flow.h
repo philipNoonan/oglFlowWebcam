@@ -64,6 +64,7 @@ public:
 	void track();
 	void track(GLuint bufferToTrack, int numPointsInBuffer);
 	bool densification(int level);
+	void medianFilter(int level);
 	void wipeFlow();
 	void wipeSumFlow();
 	void clearPoints();
@@ -113,6 +114,15 @@ public:
 	void setTrackedPoint(float x, float y)
 	{
 		m_trackedPoint = cv::Point2f(x, y);
+	}
+	
+	GLuint getQuadList()
+	{
+		return m_bufferPos;
+	}
+	uint32_t getQuadlistCount()
+	{
+		return m_quadlistCount;
 	}
 
 	bool firstFrame = true;
@@ -174,6 +184,7 @@ private:
 	GLuint m_patchInverseSearchID;
 	GLuint m_patchInverseSearchDescentID;
 	GLuint m_densificationID;
+	GLuint m_medianFilterID;
 	GLuint m_resizeID;
 	GLuint m_trackID;
 	GLuint m_trackPoseID;
@@ -305,6 +316,8 @@ private:
 	bool flipflop = false;
 
 	uint32_t m_cutoff;
+
+	uint32_t m_quadlistCount;
 
 	int m_numLevels;// = (int)(log((2 * 1920) / (4.0 * m_patch_size)) / log(2.0) + 0.5) - 1;
 

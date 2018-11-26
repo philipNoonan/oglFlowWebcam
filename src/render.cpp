@@ -81,6 +81,8 @@ void gRender::setLocations()
 	m_fromFacePoints2DID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromFacePoints2D");
 	m_fromHandsPoints2DID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromHandsPoints2D");
 	m_fromStandardTextureID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromStandardTexture");
+	m_fromQuadlistID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromQuadlist");
+
 
 	m_colorSelectionRoutineID = glGetSubroutineUniformLocation(renderProg.getHandle(), GL_FRAGMENT_SHADER, "getColorSelection");
 	m_fromDepthID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromDepth");
@@ -94,8 +96,9 @@ void gRender::setLocations()
 	m_fromEdgesID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromEdges");
 	m_fromDistanceID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromDistance");
 	m_fromQuadtreeID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromQuadtree");
+	//m_fromQuadlistID = glGetSubroutineIndex(renderProg.getHandle(), GL_FRAGMENT_SHADER, "fromQuadlist");
 
-
+	m_MvpFlowID = glGetUniformLocation(renderFlowLinesProg.getHandle(), "MVP");
 
 
 	//m_ambientID = glGetUniformLocation(renderProg.getHandle(), "ambient");
@@ -148,6 +151,15 @@ void gRender::setVertPositions()
 
 }
 
+void gRender::allocateTextures()
+{
+	m_texturePreviousColour = GLHelper::createTexture(m_texturePreviousColour, GL_TEXTURE_2D, 1, m_color_width, m_color_height, 0, GL_RGBA8);
+
+
+
+
+}
+
 void gRender::allocateBuffers()
 {
 	glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -171,18 +183,39 @@ void gRender::allocateBuffers()
 	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(5);
 	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
 
-	// FOR FLOW DENSIFICATION
-	glGenVertexArrays(1, &m_VAO_FLOW);
-	glGenBuffers(1, &m_VBO_FLOW);
-	glBindVertexArray(m_VAO_FLOW);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBO_FLOW);
-	glBufferData(GL_ARRAY_BUFFER, m_standard_verts.size() * sizeof(float), &m_standard_verts[0], GL_DYNAMIC_DRAW);
+
+	// FOR QUADLIST
+	glBindVertexArray(m_VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
+	glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glEnableVertexAttribArray(11);
+
+	//glVertexAttribIPointer(11, 1, GL_FLOAT, 4 * sizeof(float), (GLvoid*)0);
+	//glVertexAttribDivisor(11, 1); // IMPORTANT https://learnopengl.com/Advanced-OpenGL/Instancing
+
 	glBindVertexArray(0);
 
+	// FOR FLOW DENSIFICATION
+	//glGenVertexArrays(1, &m_VAO_FLOW);
+	//glGenBuffers(1, &m_VBO_FLOW);
+	//glBindVertexArray(m_VAO_FLOW);
+	//glBindBuffer(GL_ARRAY_BUFFER, m_VBO_FLOW);
+	//glBufferData(GL_ARRAY_BUFFER, m_standard_verts.size() * sizeof(float), &m_standard_verts[0], GL_DYNAMIC_DRAW);
+	//glBindVertexArray(0);
 
+
+
+
+}
+
+void gRender::setBuffers(GLuint quadList) 
+{
+	m_bufferQuadlist = quadList;
 }
 
 void gRender::createOffscreenFramebuffer()
@@ -214,7 +247,7 @@ void gRender::setComputeWindowPosition()
 	glViewport(0, 0, 1920, 1080);
 }
 
-void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance)
+void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, bool showInfraFlag, bool showColorFlag, bool showLightFlag, bool showPointFlag, bool showFlowFlag, bool showEdgesFlag, bool showNormalFlag, bool showVolumeSDFFlag, bool showTrackFlag, bool showDistance, bool showQuads)
 {
 	m_showDepthFlag = showDepthFlag;
 	m_showBigDepthFlag = showBigDepthFlag;
@@ -228,6 +261,7 @@ void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, boo
 	m_showVolumeSDFFlag = showVolumeSDFFlag;
 	m_showTrackFlag = showTrackFlag;
 	m_showDistanceFlag = showDistance;
+	m_showQuadsFlag = showQuads;
 }
 
 void gRender::setTextures(GLuint colorTex, GLuint edgesTex)
@@ -250,6 +284,9 @@ void gRender::bindTexturesForRendering()
 
 	if (m_showFlowFlag)
 	{
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, m_textureColor);
+
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, m_textureFlow);
 	}
@@ -375,15 +412,35 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 {
 	//if (m_showFlowFlag)
 	//{
-		//renderFlowLinesProg.use();
-		//glBindVertexArray(m_VAO_FLOW);
 
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+	//if (frameCount == 99)
+	//{
 
-		//glDrawArraysInstanced(GL_POINTS, 0, 1, 1920*1080);
+	//	glCopyImageSubData(m_textureColor, GL_TEXTURE_2D, 0, 0, 0, 0,
+	//		m_texturePreviousColour, GL_TEXTURE_2D, 0, 0, 0, 0,
+	//		m_color_width, m_color_height, 1);
+
+	//	cv::Mat prevCol = cv::Mat(m_color_height, m_color_width, CV_8UC4);
+
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, m_texturePreviousColour);
+	//	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, prevCol.data);
+	//	glBindTexture(GL_TEXTURE_2D, 0);
+	//	glActiveTexture(0);
+
+	//	cv::imshow("prevCol", prevCol);
+	//	cv::waitKey(1);
+
+	//}
+	//if (frameCount == 100)
+	//{
+	//	frameCount = 0;
 
 
+
+
+	//}
+	//frameCount++;
 
 
 	//}
@@ -444,7 +501,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			MVP = m_projection * m_view * m_model_color;
 
 			glBindVertexArray(m_VAO);
-			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.25f));
 			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromFlowID);
 			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
@@ -473,6 +530,54 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 
 
 		}
+
+		if (m_showQuadsFlag)
+		{
+			// here we will pass the quadlist buffer
+			// the vertex shader will create pixels quads centered at the center of the quad and of the correct size
+			// in the fragment shader we will get the std dev from the quad and 
+			// if the std dev is below a thresh, the output gl fragment color is the pass through quad colour
+			// if std dev is high, then it is unreliable flow, and output flow is written as zero
+			
+			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+			MVP = m_projection * m_view * m_model_color;
+
+			glBindVertexArray(m_VAO);
+			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+
+			glEnableVertexAttribArray(11);
+			glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
+
+			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+
+			//glUniformMatrix4fv(m_MvpFlowID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+
+			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromQuadlistID);
+			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromQuadtreeID);
+			//glDrawArrays(GL_POINTS, 0, 2);
+
+			glDrawArrays(GL_POINTS, 0, m_quadlistCount);
+		}
+
+		if (m_showPointFlag)
+		{
+			renderFlowLinesProg.use();
+			glBindVertexArray(m_VAO_FLOW);
+			//MVP = m_view * m_model_color;
+
+			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+			//glUniformMatrix4fv(m_MvpFlowID, 1, GL_FALSE, glm::value_ptr(MVP));
+
+			glDrawArraysInstanced(GL_POINTS, 0, 1, 1920 * 1080 / 16);
+		}
+
 
 
 	//} // the attempt at geometry rendering lines

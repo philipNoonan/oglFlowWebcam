@@ -93,6 +93,7 @@ bool showVolumeFlag = false;
 bool showTrackFlag = false;
 bool showFloodFlag = false;
 bool showDistanceFlag = false;
+bool showQuadsFlag = false;
 
 float irBrightness = 1.0;
 float irLow = 0.0f;

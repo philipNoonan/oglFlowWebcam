@@ -104,10 +104,10 @@ bool traverseHPLevel()
 
     // now traverse pyr from top to bottom depending on image size
     bool leafReached = false;
-    int lod = 8;
+    int lod = 10;
     vec2 range = vec2(0.0f,0.0f);
 
-    for (int k = 9*4; k >= 0; k--)
+    for (int k = 10*4; k >= 0; k--)
     {
         leafReached = scanHPLevel(target, lod, cubePosition, range);
         if (leafReached || lod < cutoff)

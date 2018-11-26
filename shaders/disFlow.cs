@@ -7,7 +7,7 @@ layout(local_size_x = 4, local_size_y = 4) in;
 layout(binding = 0, rg32f) uniform image2D im_grad_I0_x_y;
 layout(binding = 1, rg32f) uniform image2D flow_texture_x_y;
 layout(binding = 2, rg32f) uniform image2D previous_layer_flow_texture_x_y;
-layout(binding = 3, r32f) uniform image2D test_texture;
+layout(binding = 3, rgba8ui) uniform uimage2D test_texture;
 
   //  layout(binding = 7, rgba32f) uniform image2D im_prod_I0_xx_yy_xy_aux;
 
@@ -55,8 +55,8 @@ uniform ivec2 texSize;// = ivec2(1920, 1080);
 float luminance(vec3 color)
 {
     //return 0.2126 * float(color.x) / 255.0f + 0.7152 * float(color.y) / 255.0f + 0.0722 * float(color.z) / 255.0f;
-    return 0.299f * float(color.x) + 0.587f * float(color.y) + 0.114f * float(color.z);
-    //return float(color.x) + float(color.y) + float(color.z);
+    //return 0.299f * float(color.x) + 0.587f * float(color.y) + 0.114f * float(color.z);
+    return (float(color.x) + float(color.y) + float(color.z)) / 3.0f;
 
 }
 
@@ -489,7 +489,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
         float x_grad_sum = inputSum.x;
         float y_grad_sum = inputSum.y;
 
-imageStore(test_texture, pix_sparse, vec4(min_SSD));
+//imageStore(test_texture, pix_sparse, vec4(min_SSD));
 
 
         for (int t = 0; t < level + 4; t++) // CHANE+GE ME TO ITER!!!
@@ -602,6 +602,7 @@ void densification()
     j = float(x);// / float(imSize.x);
 
     /* Iterate through all the patches that overlap the current location (i,j) */
+    // but when we have patch size 8, offset 4, then each pixel will only be affected by 2 sparse pixels
     float countSize = 0;
     for (int is = start_is; is <= end_is; is++, countSize++)
     {
@@ -615,24 +616,34 @@ void densification()
             j_m = ((min(max(j + sx_sy_val.x, 0.0f), float(imSize.x) - 1.0f - EPS)));
             i_m = ((min(max(i + sx_sy_val.y, 0.0f), float(imSize.y) - 1.0f - EPS)));
 
-            float i1_val;
-            float i0_val;
+            float warpedPixel;
 
             if (imageType == 0)
             {
+                float i1_val;
+                float i0_val;
+
                 i1_val = textureLod(tex_I1, vec2(j_m / float(imSize.x), i_m / float(imSize.y)), level).x;
                 i0_val = textureLod(tex_I0, vec2(j / float(imSize.x), i / float(imSize.y)), level).x;
+                diff = i1_val - i0_val;
+                warpedPixel = i1_val;
             }
             else if (imageType == 1)
             {
-                i1_val = luminance(textureLod(tex_I1, vec2(j_m / float(imSize.x), i_m / float(imSize.y)), level).xyz);
-                i0_val = luminance(textureLod(tex_I0, vec2(j / float(imSize.x), i / float(imSize.y)), level).xyz);
+                vec3 i1_val;
+                vec3 i0_val;
+
+                i1_val = (textureLod(tex_I1, vec2(j_m / float(imSize.x), i_m / float(imSize.y)), level).xyz);
+                i0_val = (textureLod(tex_I0, vec2(j / float(imSize.x), i / float(imSize.y)), level).xyz);
+
+                diff = luminance(i1_val - i0_val);
+                warpedPixel = luminance(i1_val);
+
             }
 
-            iMean += i1_val;
+            iMean += warpedPixel;
 
-            diff = i1_val - i0_val;
-            coef = 1 / max(1.0f, abs(diff));
+            coef = 1.0 / max(1.0f, abs(diff));
             sum_Ux += coef * sx_sy_val.x;
             sum_Uy += coef * sx_sy_val.y;
             sum_coef += coef;
@@ -641,13 +652,117 @@ void densification()
 
 
     imageStore(flow_texture_x_y, ivec2(x, y), vec4(sum_Ux / sum_coef, sum_Uy / sum_coef, 0, 0));
-    //imageStore(flow_texture_x_y, ivec2(x, y), vec4(iMean / countSize, sum_Uy / sum_coef, 0, 0));
+   //imageStore(flow_texture_x_y, ivec2(x, y), vec4(iMean / countSize, 0, 0, 0));
+
+
+
+}
+
+/*
+3x3 Median
+Morgan McGuire and Kyle Whitson
+http://graphics.cs.williams.edu
+
+
+Copyright (c) Morgan McGuire and Williams College, 2006
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#define s2(a, b)				temp = a; a = min(a, b); b = max(temp, b);
+#define mn3(a, b, c)			s2(a, b); s2(a, c);
+#define mx3(a, b, c)			s2(b, c); s2(a, c);
+
+#define mnmx3(a, b, c)			mx3(a, b, c); s2(a, b);                                   // 3 exchanges
+#define mnmx4(a, b, c, d)		s2(a, b); s2(c, d); s2(a, c); s2(b, d);                   // 4 exchanges
+#define mnmx5(a, b, c, d, e)	s2(a, b); s2(c, d); mn3(a, c, e); mx3(b, d, e);           // 6 exchanges
+#define mnmx6(a, b, c, d, e, f) s2(a, d); s2(b, e); s2(c, f); mn3(a, b, c); mx3(d, e, f); // 7 exchanges
+
+subroutine(launchSubroutine)
+void medianFilter()
+{
+    vec2 imSize = vec2(imageSize(flow_texture_x_y).xy);
+
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+
+
+    vec3 v[9];
+
+    // Add the pixels which make up our window to the pixel array.
+    for (int dX = -1; dX <= 1; ++dX)
+    {
+        for (int dY = -1; dY <= 1; ++dY)
+        {
+            //vec2 offset = vec2(float(dX), float(dY));
+
+            // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
+            // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
+            // bottom right pixel of the window at pixel[N-1].
+            //v[(dX + 1) * 3 + (dY + 1)] = vec3(texture2D(T, gl_TexCoord[0].xy + offset * Tinvsize).xyz);
+
+            v[(dX + 1) * 3 + (dY + 1)] = vec3(imageLoad(previous_layer_flow_texture_x_y, ivec2(x + dX, y + dY)).xyz);
+        }
+    }
+
+    vec3 temp;
+
+    // Starting with a subset of size 6, remove the min and max each time
+    mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
+    mnmx5(v[1], v[2], v[3], v[4], v[6]);
+    mnmx4(v[2], v[3], v[4], v[7]);
+    mnmx3(v[3], v[4], v[8]);
+
+    imageStore(flow_texture_x_y, ivec2(x,y), vec4(v[4], 0));
 
 
 
 }
 
 subroutine(launchSubroutine)
+void calcStandardDeviation()
+{
+    // get 1D index of quadlist
+
+    // make array of values as defined by the quad
+
+    // get standard deviation
+
+    // output a texture with original flow if std dev is low, no flow if std dev is high
+
+
+
+
+}
+
+
+
+
+
+
+    subroutine(launchSubroutine)
 void trackPose()
 {
     ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
@@ -698,6 +813,8 @@ void track()
 
     trackedPointsBuffer[pix.y * trackWidth + (pix.x * 2)] += flow.x;
     trackedPointsBuffer[pix.y * trackWidth + (pix.x * 2) + 1] += flow.y;
+
+    //imageStore(test_texture, pix, vec4(currentFlow + previousFlowSum, 0, 0));
 
 
 }

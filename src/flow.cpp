@@ -59,6 +59,9 @@ void gFlow::setLocations()
 	m_patchInverseSearchDescentID = glGetSubroutineIndex(disFlowProg.getHandle(), GL_COMPUTE_SHADER, "patchInverseSearchDescent");
 
 	m_densificationID = glGetSubroutineIndex(disFlowProg.getHandle(), GL_COMPUTE_SHADER, "densification");
+	m_medianFilterID = glGetSubroutineIndex(disFlowProg.getHandle(), GL_COMPUTE_SHADER, "medianFilter");
+
+
 	m_sumFlowTextureID = glGetSubroutineIndex(disFlowProg.getHandle(), GL_COMPUTE_SHADER, "sumFlowTexture");
 
 	//m_prefixSum2D_HorID = glGetSubroutineIndex(disFlowProg.getHandle(), GL_COMPUTE_SHADER, "prefixSum2D_hor");
@@ -377,6 +380,7 @@ void gFlow::allocateBuffers()
           
 void gFlow::allocateTextures(bool useInfrared)
 {
+	uint32_t numberHPLevels = GLHelper::numberOfLevels(glm::ivec3(m_texture_width, m_texture_height, 1));
 	// WITH OR WITHOUT THIS HINT, MIP MAPPING (at least the rg32f images) IS THE EXACT SAME AS cv::resize cv::INTER_AREA
 	//glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
@@ -463,8 +467,8 @@ void gFlow::allocateTextures(bool useInfrared)
 
 
 	// QUADTREEE
-	m_texture_hpOriginalData = GLHelper::createTexture(m_texture_hpOriginalData, GL_TEXTURE_2D, 1, 512, 512, 0, GL_R32F);
-	m_texture_hpQuadtree = GLHelper::createTexture(m_texture_hpQuadtree, GL_TEXTURE_2D, 10, 512, 512, 0, GL_R32F);
+	m_texture_hpOriginalData = GLHelper::createTexture(m_texture_hpOriginalData, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_R32F);
+	m_texture_hpQuadtree = GLHelper::createTexture(m_texture_hpQuadtree, GL_TEXTURE_2D, numberHPLevels+1, 1 << numberHPLevels, 1 << numberHPLevels, 0, GL_R32F);
 
 
 
@@ -940,80 +944,134 @@ bool gFlow::densification(int level)
 	 
 	return false;    
 }        
-// 
-//void gFlow::variationalRefinement(int level)
-//{
-//	cv::Mat I0imq = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_8UC4);
-//	cv::Mat I1imq = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_8UC4);
-//
-//	glActiveTexture(GL_TEXTURE0); 
-//	glBindTexture(GL_TEXTURE_2D, m_textureI0);
-//	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I0imq.data);
-//	glBindTexture(GL_TEXTURE_2D, 0);
-//	glActiveTexture(0); 
-//
-//	glActiveTexture(GL_TEXTURE0);
-//	glBindTexture(GL_TEXTURE_2D, m_textureI1);
-//	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I1imq.data);
-//	glBindTexture(GL_TEXTURE_2D, 0);
-//	glActiveTexture(0);  
-//
-//	cv::Mat I0C1;
-//	cv::cvtColor(I0imq, I0C1, CV_BGRA2GRAY);
-//	
-//	cv::Mat I1C1;
-//	cv::cvtColor(I1imq, I1C1, CV_BGRA2GRAY);
-//
-//	cv::Mat sxx3 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
-//	cv::Mat sxx4 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
-//
-//	glActiveTexture(GL_TEXTURE0);
-//	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
-//	glGetTexImage(GL_TEXTURE_2D, level, GL_RG, GL_FLOAT, sxx3.data);
-//	glBindTexture(GL_TEXTURE_2D, 0);
-//	glActiveTexture(0);  
-//	    
-//	//cv::imshow("dens1", sxx3);  
-//	      
-//	cv::Mat image2[2];  
-//	cv::split(sxx3, image2);  
-//
-//	 
-//	variational_refinement_processors[0]->calcUV(I0C1, I1C1,
-//		image2[0], image2[1]);
-//
-//	//cv::merge(image2, 2, sxx3);
-//
-//	////glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
-//	////glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width >> level, m_texture_height >> level, GL_RG, GL_FLOAT, sxx3.ptr());
-//	//  
-//
-//	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
-//	//if (imageArray != NULL)
-//	//{
-//
-//	cv::merge(image2, 2, sxx4);
-//
-//	glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, m_texture_width >> level, m_texture_height >> level, GL_RG, GL_FLOAT, sxx4.data);
-//
-//	if (level == 1)
-//	{
-//		cv::Mat mag, ang;
-//		cv::Mat hsv_split[3], hsv;
-//		cv::Mat rgb;
-//		cv::cartToPolar(image2[0], image2[1], mag, ang, true);
-//		cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
-//		hsv_split[0] = ang;
-//		hsv_split[1] = mag;
-//		hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
-//		cv::merge(hsv_split, 3, hsv);
-//		cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
-//		cv::imshow("flowvar", rgb);
-//	}
-//
-//	 
-//
-//}
+
+void gFlow::medianFilter(int level)
+{
+	disFlowProg.use();
+	glUniform1i(m_level_dis_ID, level);
+	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_medianFilterID);
+
+	glBindImageTexture(2, m_textureU_x_y, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(1, m_texture_total_flow, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+
+	int compWidth = divup(m_texture_width >> level, 4);
+	int compHeight = divup(m_texture_height >> level, 4);
+
+	glDispatchCompute(compWidth, compHeight, 1);
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+
+
+	glCopyImageSubData(m_texture_total_flow, GL_TEXTURE_2D, level, 0, 0, 0,
+		m_textureU_x_y, GL_TEXTURE_2D, level, 0, 0, 0,
+		m_texture_width >> level, m_texture_height >> level, 1);
+	//}
+
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+
+}
+ 
+void calcStandardDeviation(int level)
+{
+	//glUseProgram(prefix_sum_prog);
+
+	//glBindImageTexture(0, images[0], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+	//glBindImageTexture(1, images[1], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+
+	//glDispatchCompute(NUM_ELEMENTS, 1, 1);
+
+	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	//glBindImageTexture(0, images[1], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+	//glBindImageTexture(1, images[2], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+
+	//glDispatchCompute(NUM_ELEMENTS, 1, 1);
+
+	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+
+
+
+void gFlow::variationalRefinement(int level)
+{
+	cv::Mat I0imq = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_8UC4);
+	cv::Mat I1imq = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_8UC4);
+
+	glActiveTexture(GL_TEXTURE0); 
+	glBindTexture(GL_TEXTURE_2D, m_textureI0);
+	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I0imq.data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(0); 
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_textureI1);
+	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I1imq.data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(0);  
+
+	cv::Mat I0C1;
+	cv::cvtColor(I0imq, I0C1, CV_BGRA2GRAY);
+	
+	cv::Mat I1C1;
+	cv::cvtColor(I1imq, I1C1, CV_BGRA2GRAY);
+
+	cv::Mat sxx3 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
+	cv::Mat sxx4 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
+	glGetTexImage(GL_TEXTURE_2D, level, GL_RG, GL_FLOAT, sxx3.data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(0);  
+	    
+	//cv::imshow("dens1", sxx3);  
+	      
+	cv::Mat image2[2];  
+	cv::split(sxx3, image2);  
+
+	 
+	variational_refinement_processors[0]->calcUV(I0C1, I1C1,
+		image2[0], image2[1]);
+
+	//cv::merge(image2, 2, sxx3);
+
+	////glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
+	////glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width >> level, m_texture_height >> level, GL_RG, GL_FLOAT, sxx3.ptr());
+	//  
+
+	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
+	//if (imageArray != NULL)
+	//{
+
+	cv::merge(image2, 2, sxx4);
+
+	glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, m_texture_width >> level, m_texture_height >> level, GL_RG, GL_FLOAT, sxx4.data);
+
+	if (level == 0)
+	{
+		cv::Mat mag, ang;
+		cv::Mat hsv_split[3], hsv;
+		cv::Mat rgb;
+		cv::cartToPolar(image2[0], image2[1], mag, ang, true);
+		cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
+		hsv_split[0] = ang;
+		hsv_split[1] = mag;
+		hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
+		cv::merge(hsv_split, 3, hsv);
+		cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
+		cv::imshow("flowvar", rgb);
+	}
+
+	 
+
+}
 
 void gFlow::variRef(int level)
 {
@@ -1436,32 +1494,37 @@ bool gFlow::calc(bool useInfrared)
 		 
 		densification(level);
 
+		medianFilter(level);
+
+		calcStandardDeviation(level);
+
+
 		//variRef(level);  // mine, broken ish  slower   
 
+
 		  
-		  
-		if (level != 0) // dont need to densify finest level?   
-		{
+		//if (level > 2) // dont need to densify finest level?   
+		//{
+		//	variationalRefinement(level); // opencv, slow
 
-			//variRef(level);  // mine, broken ish  slower   
-
-			//variationalRefinement(level); // opencv, slow
-
-			//variRef(level);  // mine, broken ish  slower   
-
-			//cv::Mat ssdMat = cv::Mat((m_texture_height >> level) / m_patch_stride, (m_texture_width >> level) / m_patch_stride, CV_32FC1);
-
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_2D, m_textureTest);
-			//glGetTexImage(GL_TEXTURE_2D, level, GL_RED, GL_FLOAT, ssdMat.data);
-			//glBindTexture(GL_TEXTURE_2D, 0);
-			//glActiveTexture(0);
-			//cv::imshow("ssd", ssdMat);
-			//cv::waitKey(1);
+		//	//variRef(level);  // mine, broken ish  slower   
 
 
+		//	//variRef(level);  // mine, broken ish  slower   
 
-		}
+		//	//cv::Mat ssdMat = cv::Mat((m_texture_height >> level) / m_patch_stride, (m_texture_width >> level) / m_patch_stride, CV_32FC1);
+
+		//	//glActiveTexture(GL_TEXTURE0);
+		//	//glBindTexture(GL_TEXTURE_2D, m_textureTest);
+		//	//glGetTexImage(GL_TEXTURE_2D, level, GL_RED, GL_FLOAT, ssdMat.data);
+		//	//glBindTexture(GL_TEXTURE_2D, 0);
+		//	//glActiveTexture(0);
+		//	//cv::imshow("ssd", ssdMat);
+		//	//cv::waitKey(1);
+
+
+
+		//}
 		  
 
 		 
@@ -1485,7 +1548,6 @@ bool gFlow::calc(bool useInfrared)
 	glGetQueryObjectui64vEXT(timeQuery[0], GL_QUERY_RESULT, &elapsed);
 	totalTime += elapsed / 1000000.0;
 
-	std::cout << totalTime << std::endl;
 
 	int level = 0;
 		glCopyImageSubData(m_textureU_x_y, GL_TEXTURE_2D, level, 0, 0, 0,
@@ -1499,44 +1561,6 @@ bool gFlow::calc(bool useInfrared)
 	//}  
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	
-
-
-
-
-	//jumpFloodCalc();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// ms 
 	m_timeElapsed = totalTime;
 	if (swapCounter % 1 == 0)
 		swapTextures(); 
@@ -1706,12 +1730,12 @@ void gFlow::track()
 	//cv::imshow("tracked", blank);
 	 
 
-	 
+	// 
 
 
 
 	//cv::Mat blank = cv::Mat(1080, 1920, CV_8UC4);  
-	  
+	//  
 	//if (swapCounter % 100 == 0)
 	//{
 	//	for (int i = 0; i < 100; i++)
@@ -1724,7 +1748,7 @@ void gFlow::track()
 	//		}
 	//	}
 	//}  
-	 
+	// 
 	//cv::Mat totflow = cv::Mat(m_texture_height >> 0, m_texture_width >> 0, CV_32FC2);
 
 	////glActiveTexture(GL_TEXTURE0);
@@ -1769,8 +1793,8 @@ void gFlow::track()
 
 void gFlow::buildQuadtree()
 {
-	cv::Mat sp_noise = cv::Mat::zeros(512, 512, CV_32F);
-	cv::randu(sp_noise, 0.0f, 1.0f);
+	//cv::Mat sp_noise = cv::Mat::zeros(512, 512, CV_32F);
+	//cv::randu(sp_noise, 0.0f, 1.0f);
 	//sp_noise.at<float>(1, 1) = 1.0f;
 
 	//sp_noise.at<float>(56, 56) = 1.0f;
@@ -1783,13 +1807,13 @@ void gFlow::buildQuadtree()
 
 	//cv::imshow("noise", sp_img);
 	//cv::waitKey(1);
-	cv::Mat sp_img = cv::Mat(512, 512, CV_32F);
+	//cv::Mat sp_img = cv::Mat(512, 512, CV_32F);
 
 
 
-	glBindTexture(GL_TEXTURE_2D, m_texture_hpOriginalData);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 512, GL_RED, GL_FLOAT, sp_noise.data);
-		glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_hpOriginalData);
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 512, 512, GL_RED, GL_FLOAT, sp_noise.data);
+	//	glBeginQuery(GL_TIME_ELAPSED, timeQuery[0]);
 
 
 	// we need to pass the shader the distance image as a float image binding point, or texture unit (prob texture unit)
@@ -1801,12 +1825,12 @@ void gFlow::buildQuadtree()
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture_hpQuadtree);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_texture_hpOriginalData);
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_hpOriginalData);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_textureI0_grad_x_y);
 
-	glm::uvec3 nthreads = GLHelper::divup(glm::uvec3(512, 512, 1), glm::uvec3(8,8,1));
+	glm::uvec3 nthreads = GLHelper::divup(glm::uvec3(2048, 2048, 1), glm::uvec3(8,8,1));
 
 	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_hpDiscriminatorID);
 	glDispatchCompute(nthreads.x, nthreads.y, nthreads.z);
@@ -1826,9 +1850,9 @@ void gFlow::buildQuadtree()
 	// run the hpBuilder subroutine on each level
 
 	/// Do other levels of histopyr
-	for (int i = 0; i < 9; i++)
+	for (int i = 0; i < 11; i++)
 	{
-		glm::uvec3 nthreads = GLHelper::divup(glm::uvec3((512 >> i) / 2, (512 >> i) / 2, 1), glm::uvec3(8, 8, 1));
+		glm::uvec3 nthreads = GLHelper::divup(glm::uvec3((2048 >> i) / 2, (2048 >> i) / 2, 1), glm::uvec3(8, 8, 1));
 
 		glUniform1i(m_hpLevelID, i);
 
@@ -1852,16 +1876,18 @@ void gFlow::buildQuadtree()
 
 	std::cout << "time " << totalTime << " ms" << std::endl;
 
-	std::vector<float> sumData((512 >> 9) * (512 >> 9), 3);
+	std::vector<float> sumData(1, 3);
 
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture_hpQuadtree);
-	glGetTexImage(GL_TEXTURE_2D, 9, GL_RED, GL_FLOAT, sumData.data());
+	glGetTexImage(GL_TEXTURE_2D, 11, GL_RED, GL_FLOAT, sumData.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(0);
 
-	//std::cout << "sum " << sumData[0] << std::endl;
+	std::cout << "sum " << sumData[0] << std::endl;
+	m_quadlistCount = sumData[0];
+
 	// read the top value from the mipmap level
 
 	// trigger that may threads on quadlist subroutine
@@ -1886,47 +1912,47 @@ void gFlow::buildQuadtree()
 
 
 
-	std::vector<float> posData(sumData[0] * 4);
+	//std::vector<float> posData(sumData[0] * 4);
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferPos);
-	void *ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-	memcpy_s(posData.data(), posData.size() * sizeof(float), ptr, posData.size() * sizeof(float));
-	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferPos);
+	//void *ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//memcpy_s(posData.data(), posData.size() * sizeof(float), ptr, posData.size() * sizeof(float));
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-	cv::Mat qtreeImage = cv::Mat(512, 512, CV_32F);
-	for (int i = 0; i < posData.size(); i+=4)
-	{
+	//cv::Mat qtreeImage = cv::Mat(2048, 2048, CV_32F);
+	//for (int i = 0; i < posData.size(); i+=4)
+	//{
 
-		int lod = posData[i + 2];
-		int quadSideLength = std::pow(2, lod);
+	//	int lod = posData[i + 2];
+	//	int quadSideLength = std::pow(2, lod);
 
-		int originX = posData[i] * quadSideLength;
-		int originY = posData[i + 1] * quadSideLength;
+	//	int originX = posData[i] * quadSideLength;
+	//	int originY = posData[i + 1] * quadSideLength;
 
-		cv::line(qtreeImage, cv::Point2i(originX, originY), cv::Point2i(originX + quadSideLength, originY), 1.0);
-		cv::line(qtreeImage, cv::Point2i(originX + quadSideLength, originY), cv::Point2i(originX + quadSideLength, originY + quadSideLength), 1.0);
-		cv::line(qtreeImage, cv::Point2i(originX + quadSideLength, originY + quadSideLength), cv::Point2i(originX, originY + quadSideLength), 1);
-		cv::line(qtreeImage, cv::Point2i(originX, originY + quadSideLength), cv::Point2i(originX, originY), 1);
+	//	cv::line(qtreeImage, cv::Point2i(originX, originY), cv::Point2i(originX + quadSideLength, originY), 1.0);
+	//	cv::line(qtreeImage, cv::Point2i(originX + quadSideLength, originY), cv::Point2i(originX + quadSideLength, originY + quadSideLength), 1.0);
+	//	cv::line(qtreeImage, cv::Point2i(originX + quadSideLength, originY + quadSideLength), cv::Point2i(originX, originY + quadSideLength), 1);
+	//	cv::line(qtreeImage, cv::Point2i(originX, originY + quadSideLength), cv::Point2i(originX, originY), 1);
 
-	}
-	cv::Mat noiseIm = (sp_img + 1.0f);
+	//}
+	//cv::Mat noiseIm = (sp_img + 1.0f);
 
-	cv::Mat im1, im2;
-	cv::normalize(noiseIm, im1, 0, 1, cv::NORM_MINMAX);
+	//cv::Mat im1, im2;
+	//cv::normalize(noiseIm, im1, 0, 1, cv::NORM_MINMAX);
 	//cv::flip(im1, im1f, 1);
 	//cv::flip(im1f, im1, 0);
 
 
 
 
-	cv::normalize(qtreeImage, im2, 0, 1, cv::NORM_MINMAX);
+	//cv::normalize(qtreeImage, im2, 0, 1, cv::NORM_MINMAX);
 
 
 
-	cv::Mat outIm = cv::Mat(512, 512, CV_8UC3);
-	cv::addWeighted(im1, 1.5, im2, 0.3, 0.0, outIm);
-	cv::namedWindow("quadtree", WINDOW_NORMAL);
-	cv::imshow("quadtree", outIm);
-	cv::waitKey(1);
+	//cv::Mat outIm = cv::Mat(512, 512, CV_8UC3);
+	//cv::addWeighted(im1, 1.5, im2, 0.3, 0.0, outIm);
+	//cv::namedWindow("quadtree", WINDOW_NORMAL);
+	//cv::imshow("quadtree", qtreeImage);
+	//cv::waitKey(1);
 
 }
