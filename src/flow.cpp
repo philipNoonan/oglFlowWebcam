@@ -26,6 +26,12 @@ void gFlow::compileAndLinkShader()
 
 	//jumpFloodProg.compileShader("shaders/jumpFlood.cs");
 	//jumpFloodProg.link();
+
+	prefixSumProg.compileShader("shaders/prefixSum2D.cs");
+	prefixSumProg.link();
+
+	stdDevProg.compileShader("shaders/stdDev.cs");
+	stdDevProg.link();
 	 
 	densifyRasterProg.compileShader("shaders/vertShaderDensify.vs");
 	densifyRasterProg.compileShader("shaders/fragShaderDensify.fs");
@@ -372,9 +378,21 @@ void gFlow::allocateBuffers()
 
 
 	// quadtrees
-	glGenBuffers(1, &m_bufferPos);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, m_bufferPos);
+	glDeleteBuffers(1, &m_bufferQuadlist);
+	glGenBuffers(1, &m_bufferQuadlist);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, m_bufferQuadlist);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 512*512*sizeof(float)*4, NULL, GL_DYNAMIC_DRAW); // some max size
+
+	glDeleteBuffers(1, &m_bufferQuadlistMeanTemp);
+	glGenBuffers(1, &m_bufferQuadlistMeanTemp);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, m_bufferQuadlistMeanTemp);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 512 * 512 * sizeof(float) * 2, NULL, GL_DYNAMIC_DRAW); // some max size
+
+
+	
+
+
+
 }  
     
           
@@ -421,6 +439,16 @@ void gFlow::allocateTextures(bool useInfrared)
 	glBindTexture(GL_TEXTURE_2D, m_texture_init_U_x_y);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroValues.data());
 	glGenerateMipmap(GL_TEXTURE_2D);
+
+	m_texture_prefixSumTemp = createTexture(m_texture_prefixSumTemp, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_width, 0, GL_RG32F);
+	glBindTexture(GL_TEXTURE_2D, m_texture_prefixSumTemp);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	m_texture_prefixSum = createTexture(m_texture_prefixSum, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RG32F);
+	glBindTexture(GL_TEXTURE_2D, m_texture_prefixSum);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroValues.data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 
 	m_texture_previous_U_x_y = createTexture(m_texture_previous_U_x_y, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RG32F);
 
@@ -977,23 +1005,41 @@ void gFlow::medianFilter(int level)
 
 }
  
-void calcStandardDeviation(int level)
+void gFlow::calcStandardDeviation(int level)
 {
-	//glUseProgram(prefix_sum_prog);
+	prefixSumProg.use();
 
-	//glBindImageTexture(0, images[0], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
-	//glBindImageTexture(1, images[1], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	glBindImageTexture(0, m_textureU_x_y, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(1, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
 
-	//glDispatchCompute(NUM_ELEMENTS, 1, 1);
+	//int w = divup(m_texture_width, 1024);
+	//int h = divup(m_texture_height, 1024);
 
-	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glDispatchCompute(m_texture_width, 1, 1);
 
-	//glBindImageTexture(0, images[1], 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
-	//glBindImageTexture(1, images[2], 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	//glDispatchCompute(NUM_ELEMENTS, 1, 1);
+	glBindImageTexture(0, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(1, m_texture_prefixSum, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
 
-	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glDispatchCompute(m_texture_width, 1, 1);
+
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	stdDevProg.use();
+	glBindImageTexture(0, m_texture_prefixSum, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferQuadlist);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_bufferQuadlistMeanTemp);
+
+	int w = GLHelper::divup(m_quadlistCount, 32);
+
+	glDispatchCompute(w, 1, 1);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+
+
+
 }
 
 
@@ -1008,13 +1054,13 @@ void gFlow::variationalRefinement(int level)
 	glBindTexture(GL_TEXTURE_2D, m_textureI0);
 	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I0imq.data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0); 
+	//glActiveTexture(0); 
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_textureI1);
 	glGetTexImage(GL_TEXTURE_2D, level, GL_RGBA, GL_UNSIGNED_BYTE, I1imq.data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);  
+	//glActiveTexture(0);  
 
 	cv::Mat I0C1;
 	cv::cvtColor(I0imq, I0C1, CV_BGRA2GRAY);
@@ -1029,7 +1075,7 @@ void gFlow::variationalRefinement(int level)
 	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
 	glGetTexImage(GL_TEXTURE_2D, level, GL_RG, GL_FLOAT, sxx3.data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);  
+	//glActiveTexture(0);  
 	    
 	//cv::imshow("dens1", sxx3);  
 	      
@@ -1397,7 +1443,7 @@ void gFlow::jumpFloodCalc()
 	glBindTexture(GL_TEXTURE_2D, m_texture_jfa_0);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RG_INTEGER, GL_INT, prejfaMat.data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(0);
 	 
 	//cv::imshow("dens1", sxx3);   
 
@@ -1444,7 +1490,7 @@ void gFlow::jumpFloodCalc()
 	glBindTexture(GL_TEXTURE_2D, m_texture_jfa_1);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RG_INTEGER, GL_INT, jfaMat.data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(0);
 
 	//cv::imshow("dens1", sxx3);  
 
@@ -1883,7 +1929,7 @@ void gFlow::buildQuadtree()
 	glBindTexture(GL_TEXTURE_2D, m_texture_hpQuadtree);
 	glGetTexImage(GL_TEXTURE_2D, 11, GL_RED, GL_FLOAT, sumData.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(0);
+	//glActiveTexture(0);
 
 	std::cout << "sum " << sumData[0] << std::endl;
 	m_quadlistCount = sumData[0];
@@ -1898,7 +1944,7 @@ void gFlow::buildQuadtree()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_texture_hpQuadtree);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferPos);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferQuadlist);
 
 	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_traverseHPLevelID);
 	glUniform1ui(m_totalSumID, sumData[0]);

@@ -65,6 +65,7 @@ public:
 	void track(GLuint bufferToTrack, int numPointsInBuffer);
 	bool densification(int level);
 	void medianFilter(int level);
+	void calcStandardDeviation(int level);
 	void wipeFlow();
 	void wipeSumFlow();
 	void clearPoints();
@@ -116,13 +117,17 @@ public:
 		m_trackedPoint = cv::Point2f(x, y);
 	}
 	
-	GLuint getQuadList()
+	GLuint getQuadlist()
 	{
-		return m_bufferPos;
+		return m_bufferQuadlist;
 	}
 	uint32_t getQuadlistCount()
 	{
 		return m_quadlistCount;
+	}
+	GLuint getQuadlistMeanTemp()
+	{
+		return m_bufferQuadlistMeanTemp;
 	}
 
 	bool firstFrame = true;
@@ -164,6 +169,8 @@ private:
 	GLSLProgram jumpFloodProg;
 	GLSLProgram hpQuadtreeProg;
 	GLSLProgram hpQuadListProg;
+	GLSLProgram prefixSumProg;
+	GLSLProgram stdDevProg;
 
 	GLSLProgram densifyRasterProg;
 
@@ -205,7 +212,8 @@ private:
 	GLuint m_subroutine_hpQuadtreeID;
 	GLuint m_hpDiscriminatorID;
 	GLuint m_hpBuilderID;
-	GLuint m_bufferPos;
+	GLuint m_bufferQuadlist;
+	GLuint m_bufferQuadlistMeanTemp;
 
 	GLuint m_subroutine_hpQuadlistID;
 	GLuint m_traverseHPLevelID;
@@ -282,6 +290,8 @@ private:
 	GLuint m_textureU_x_y;
 	GLuint m_texture_init_U_x_y;
 	GLuint m_texture_previous_U_x_y;
+	GLuint m_texture_prefixSumTemp;
+	GLuint m_texture_prefixSum;
 
 	//GLuint m_textureUy;
 

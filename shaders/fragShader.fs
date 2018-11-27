@@ -15,6 +15,8 @@ layout(binding = 5, rg16i) uniform iimage3D volumeData; // texel access
 
 in vec2 TexCoord;
 in float zDepth;
+in vec2 meanFlow;
+
 layout(location = 0) out vec4 color;
 
 uniform mat4 model;
@@ -96,14 +98,17 @@ vec4 fromQuadtree()
 	//float u = (2.0 * float(gl_FragCoord.x)) / 1600.0f - 1.0f; //1024.0f is the window resolution, change this to a uniform
     //float v = (2.0 * float(gl_FragCoord.y)) / 900.0f - 1.0f;
 
-	float u = float(gl_FragCoord.x) / 960.0f; //1024.0f is the window resolution, change this to a uniform
-    float v = float(gl_FragCoord.y) / 540.0f;
+	float u = float(gl_FragCoord.x); //1024.0f is the window resolution, change this to a uniform
+    float v = float(gl_FragCoord.y);
 
-	vec4 tFlow = textureLod(currentTextureFlow, vec2(u / 1.6667, 1.0 - v / 1.6667), 0);
+	vec2 tFlow = textureLod(currentTextureFlow, vec2(u / 1600.0f, 1.0 - v / 900.0f), 0).xy - meanFlow;
 
-	return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
+	
+	//return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
 
-	return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
+
+	//return vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 int ncols = 0;

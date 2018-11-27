@@ -2,7 +2,7 @@
 
 layout(local_size_x = 1024) in;
 
-shared float shared_data[gl_WorkGroupSize.x * 2];
+shared vec2 shared_data[gl_WorkGroupSize.x * 2];
 
 layout(binding = 0, rg32f) readonly uniform image2D input_image;
 layout(binding = 1, rg32f) writeonly uniform image2D output_image;
@@ -10,6 +10,12 @@ layout(binding = 1, rg32f) writeonly uniform image2D output_image;
 void main(void)
 {
     uint id = gl_LocalInvocationID.x;
+
+    uvec2 imSize = imageSize(input_image).xy;
+
+    if (id > imSize.x)
+        return;
+
     uint rd_id;
     uint wr_id;
     uint mask;
@@ -19,8 +25,10 @@ void main(void)
     const uint steps = uint(log2(gl_WorkGroupSize.x)) + 1;
     uint step = 0;
 
-    shared_data[P0.x] = imageLoad(input_image, P0).r;
-    shared_data[P1.x] = imageLoad(input_image, P1).r;
+
+
+    shared_data[P0.x] = imageLoad(input_image, P0).xy;
+    shared_data[P1.x] = imageLoad(input_image, P1).xy;
 
     barrier();
 
@@ -35,6 +43,6 @@ void main(void)
         barrier();
     }
 
-    imageStore(output_image, P0.yx, vec4(shared_data[P0.x]));
-    imageStore(output_image, P1.yx, vec4(shared_data[P1.x]));
+    imageStore(output_image, P0.yx, vec4(shared_data[P0.x], 0, 0));
+    imageStore(output_image, P1.yx, vec4(shared_data[P1.x], 0, 0));
 }

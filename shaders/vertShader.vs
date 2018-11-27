@@ -16,6 +16,7 @@ layout (location = 9) in vec3 posePoints;
 layout (location = 10) in vec3 handsPoints; 
 
 layout (location = 11) in vec4 quadlist; 
+layout (location = 12) in vec2 quadlistMeanTemp; 
 
 //layout (std430, binding = 7) buffer trackedPoints; 
 
@@ -27,6 +28,7 @@ uniform vec2 imSize;
 
 out vec2 TexCoord;
 out float zDepth;
+out vec2 meanFlow;
 
 subroutine vec4 getPosition();
 subroutine uniform getPosition getPositionSubroutine;
@@ -98,17 +100,22 @@ vec4 fromQuadlist()
 	uint yPos = uint(quadlist.y);
 	uint lod = uint(quadlist.z);
 
+	meanFlow = quadlistMeanTemp;
 
 	float quadSideLength = float(pow(2, lod)) ; //
 
 	vec2 origin = ((vec2(xPos, yPos) * quadSideLength) + (quadSideLength * 0.5f)); // 
 
-	gl_PointSize = (quadSideLength) - 0.1f;
+	gl_PointSize = (quadSideLength);
 
 	 
 	vec4 pos = vec4(MVP * vec4(origin, 0.0f, 1.0f));
 
-	gl_PointSize = quadSideLength;//pos.x / float(origin.x) * quadSideLength;
+	vec4 quadSize = vec4(quadSideLength, quadSideLength, 0, 0);
+
+	float outSize = (MVP * quadSize).x;
+
+	//gl_PointSize = outSize;//quadSideLength;//pos.x / float(origin.x) * quadSideLength;
 
 	return vec4(pos.x, 1.0 - pos.y, pos.z, pos.w);
 

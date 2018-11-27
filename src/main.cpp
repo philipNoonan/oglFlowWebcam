@@ -12,7 +12,7 @@ void gRenderInit()
 	grender.compileAndLinkShader();
 	grender.setColorSize(colorWidth, colorHeight);
 
-	grender.setBuffers(gflow.getQuadList());
+	grender.setBuffers(gflow.getQuadlist(), gflow.getQuadlistMeanTemp());
 
 	grender.setLocations();
 	grender.setVertPositions();
@@ -105,7 +105,10 @@ void resetFlowSize()
 	gflow.allocateTextures(false);
 	gflow.allocateBuffers();
 
+	grender.setBuffers(gflow.getQuadlist(), gflow.getQuadlistMeanTemp());
+
 	grender.setColorSize(colorWidth, colorHeight);
+	grender.allocateBuffers();
 
 	fGrabber.setImageDimensions(colorWidth, colorHeight);
 	fGrabber.resetImageDimensions();

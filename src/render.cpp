@@ -195,6 +195,10 @@ void gRender::allocateBuffers()
 	glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glEnableVertexAttribArray(11);
 
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlistMeanTemp);
+	glVertexAttribPointer(12, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glEnableVertexAttribArray(12);
+
 	//glVertexAttribIPointer(11, 1, GL_FLOAT, 4 * sizeof(float), (GLvoid*)0);
 	//glVertexAttribDivisor(11, 1); // IMPORTANT https://learnopengl.com/Advanced-OpenGL/Instancing
 
@@ -213,9 +217,10 @@ void gRender::allocateBuffers()
 
 }
 
-void gRender::setBuffers(GLuint quadList) 
+void gRender::setBuffers(GLuint quadList, GLuint quadlistMeanTemp) 
 {
 	m_bufferQuadlist = quadList;
+	m_bufferQuadlistMeanTemp = quadlistMeanTemp;
 }
 
 void gRender::createOffscreenFramebuffer()
@@ -549,6 +554,8 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 
 			glEnableVertexAttribArray(11);
 			glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
+			glEnableVertexAttribArray(12);
+			glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlistMeanTemp);
 
 			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
 			glActiveTexture(GL_TEXTURE3);

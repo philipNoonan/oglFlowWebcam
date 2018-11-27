@@ -86,7 +86,7 @@ public:
 	void allocateBuffers();
 	void allocateTextures();
 	void setTextures(GLuint colorTex, GLuint edgesTex);
-	void setBuffers(GLuint quadlist);
+	void setBuffers(GLuint quadlist, GLuint quadlistMeanTemp);
 	void setFlowTexture(GLuint flowTex);
 	void setDistanceTexture(GLuint distTex)
 	{
@@ -251,6 +251,7 @@ private:
 	GLuint m_textureDistance;
 
 	GLuint m_bufferQuadlist;
+	GLuint m_bufferQuadlistMeanTemp;
 
 	GLuint m_texturePreviousColour;
 	int frameCount = 0;
