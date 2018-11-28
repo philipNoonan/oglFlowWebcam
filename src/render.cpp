@@ -456,7 +456,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		renderProg.use();
 		glm::mat4 MVP;
-
+		glm::vec2 imageSize = glm::vec2(m_color_width, m_color_height);
 
 		if (m_showColorFlag)
 		{
@@ -566,6 +566,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 
 			//glUniformMatrix4fv(m_MvpFlowID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 
 			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromQuadlistID);
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromQuadtreeID);

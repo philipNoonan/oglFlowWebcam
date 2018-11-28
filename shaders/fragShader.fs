@@ -95,17 +95,19 @@ vec4 fromPoints()
 subroutine(getColor)
 vec4 fromQuadtree()
 {
-	//float u = (2.0 * float(gl_FragCoord.x)) / 1600.0f - 1.0f; //1024.0f is the window resolution, change this to a uniform
-    //float v = (2.0 * float(gl_FragCoord.y)) / 900.0f - 1.0f;
+	vec2 texSize = vec2(textureSize(currentTextureColor, texLevel).xy);
 
-	float u = float(gl_FragCoord.x); //1024.0f is the window resolution, change this to a uniform
-    float v = float(gl_FragCoord.y);
+	//float u = (2.0 * float(gl_FragCoord.x)) / texSize.x - 1.0f; //1024.0f is the window resolution, change this to a uniform
+    //float v = (2.0 * float(gl_FragCoord.y)) / texSize.y - 1.0f;
 
-	vec2 tFlow = textureLod(currentTextureFlow, vec2(u / 1600.0f, 1.0 - v / 900.0f), 0).xy - meanFlow;
+	float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
+    float v = float(gl_FragCoord.y); // 0 - 1080
 
-		return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0-(v / 1080.0f)), 0).xy - meanFlow;
 
-	return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
+		//return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	//return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
 
 	return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
 
