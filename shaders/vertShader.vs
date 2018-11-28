@@ -43,8 +43,14 @@ vec4 fromTexture()
 subroutine(getPosition)
 vec4 fromStandardTexture()
 {
-	TexCoord = vec2(texCoord.x, 1 - texCoord.y);
-	return vec4(MVP * vec4(((position.x + 1.0) / 2.0) * imSize.x, ((position.y + 1.0) / 2.0) * imSize.y, position.z, 1.0f));
+ // an approach that doesnt require CPU passed vertices, very nice
+ // taken from demanze answer at https://stackoverflow.com/questions/2588875/whats-the-best-way-to-draw-a-fullscreen-quad-in-opengl-3-2
+	float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u); // u is just the type qualifer, like f, i think
+    float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u); 
+
+	TexCoord = vec2(x, 1.0 - y);
+
+	return vec4(-1.0f + x*2.0f, -1.0f+y*2.0f, 0.1f, 1.0f);
 }
 
 subroutine(getPosition)
@@ -90,7 +96,9 @@ vec4 fromHandsPoints2D()
 subroutine(getPosition)
 vec4 fromQuadlist()
 {
-
+    // to render on screen we have to map the quad dims to -1 -> 1 NDC, 
+	// as they are currently from 0 -> nextPowerofTwoUp(imageSize)^2
+	
 	// uint xPos = (octlist & 4286578688) >> 23;
 	// uint yPos = (octlist & 8372224) >> 14;
 	// uint zPos = (octlist & 16352) >> 5;
@@ -102,22 +110,20 @@ vec4 fromQuadlist()
 
 	meanFlow = quadlistMeanTemp;
 
-	float quadSideLength = float(pow(2, lod)) ; //
+	float quadSideLength = float(pow(2, lod)); //
 
 	vec2 origin = ((vec2(xPos, yPos) * quadSideLength) + (quadSideLength * 0.5f)); // 
 
-	gl_PointSize = (quadSideLength);
+	//gl_PointSize = (quadSideLength);
 
 	 
-	vec4 pos = vec4(MVP * vec4(origin, 0.0f, 1.0f));
+	vec4 pos = vec4((origin.x / (1280.0f / 2.0f))-1.0f, (origin.y / (720.0f / 2.0f)) - 1.0f, 0.0f, 1.0f);
 
-	vec4 quadSize = vec4(quadSideLength, quadSideLength, 0, 0);
 
-	float outSize = (MVP * quadSize).x;
 
-	//gl_PointSize = outSize;//quadSideLength;//pos.x / float(origin.x) * quadSideLength;
+	gl_PointSize = max(int(quadSideLength * (1920.0/1280.0)) - 1, 1);//outSize;//quadSideLength;//pos.x / float(origin.x) * quadSideLength;
 
-	return vec4(pos.x, 1.0 - pos.y, pos.z, pos.w);
+	return vec4(pos.x, -pos.y, pos.z, pos.w);
 
 }
 

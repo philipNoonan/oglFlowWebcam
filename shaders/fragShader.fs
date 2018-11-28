@@ -103,12 +103,12 @@ vec4 fromQuadtree()
 
 	vec2 tFlow = textureLod(currentTextureFlow, vec2(u / 1600.0f, 1.0 - v / 900.0f), 0).xy - meanFlow;
 
-	
-	//return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
+		return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
 
 	return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
 
-	//return vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 int ncols = 0;
@@ -156,7 +156,7 @@ vec4 fromFlow()
 	//vec4 tFlow = textureLod(currentTextureFlow, TexCoord, texLevel);
 	ivec2 texSize = textureSize(currentTextureColor, texLevel);
 			vec4 tFlow = texelFetch(currentTextureFlow, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
-
+			//return vec4(1.0f, 0, 0, 1);
 	//vec4 tColor = texelFetch(currentTextureColor, ivec2((TexCoord.x * texSize.x) + tFlow.x, (TexCoord.y * texSize.y) + tFlow.y), texLevel);    
 
 

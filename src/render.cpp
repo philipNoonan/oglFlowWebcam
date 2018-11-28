@@ -356,7 +356,7 @@ void gRender::setColorImageRenderPosition(float vertFov)
 	//glm::vec3 scaleVec = glm::vec3(6.f, 6.f, 1.0f);
 
 	//m_model_color = glm::scale(glm::mat4(1.0f), scaleVec);
-	m_model_color = glm::translate(glm::mat4(1.0f), glm::vec3(-m_color_width / 2.0f, -m_color_height / 2.0f, -zDist));
+	m_model_color = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5, -0.5, -1.0));
 
 	//std::cout << "zDis" << zDist << "w " << w << " h" << h << " ad " << halfWidthAtDistance << std::endl;
 	//m_model_color = glm::translate(glm::mat4(1.0f), glm::vec3(-m_color_width / 2.0f, 0.0f, -2000.0f));
@@ -405,7 +405,7 @@ void gRender::setProjectionMatrix()
 {
 	int w, h;
 	glfwGetFramebufferSize(m_window, &w, &h);
-	m_projection = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 1.0f, 10000.0f); // scaling the texture to the current window size seems to work
+	m_projection = glm::perspective(glm::radians(45.0f), (float)w / (float)h, 0.1f, 100.0f); // scaling the texture to the current window size seems to work
 	glViewport(0, 0, w, h);
 
 
@@ -475,8 +475,9 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
 
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 			//glTexParameteri(m_textureColor, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 			//glTexParameteri(m_textureColor, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
@@ -503,17 +504,19 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glm::vec2 imageSize;
 
 			imageSize = glm::vec2(m_color_width, m_color_height);
-			MVP = m_projection * m_view * m_model_color;
+			MVP = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -5.0f));
 
 			glBindVertexArray(m_VAO);
-			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.25f));
+			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.25f));
 			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromStandardTextureID);
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromFlowID);
 			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
 		}
 
 		if (m_showDistanceFlag)
@@ -547,10 +550,10 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-			MVP = m_projection * m_view * m_model_color;
+			MVP = m_projection * m_view * glm::translate(m_model_color, glm::vec3(0.0f, 0.0f, 0.5f));
 
 			glBindVertexArray(m_VAO);
-			MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
+			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
 
 			glEnableVertexAttribArray(11);
 			glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
