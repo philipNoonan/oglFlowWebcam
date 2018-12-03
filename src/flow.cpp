@@ -32,6 +32,11 @@ void gFlow::compileAndLinkShader()
 
 	stdDevProg.compileShader("shaders/stdDev.cs");
 	stdDevProg.link();
+
+	renderOffscreenProg.compileShader("shaders/vertShaderOS.vs");
+	renderOffscreenProg.compileShader("shaders/fragShaderOS.fs");
+	renderOffscreenProg.link();
+
 	 
 	densifyRasterProg.compileShader("shaders/vertShaderDensify.vs");
 	densifyRasterProg.compileShader("shaders/fragShaderDensify.fs");
@@ -123,6 +128,20 @@ void gFlow::setLocations()
 	m_totalSumID = glGetUniformLocation(hpQuadListProg.getHandle(), "totalSum");
 	m_cutoffID = glGetUniformLocation(hpQuadListProg.getHandle(), "cutoff");
 
+	//offscreen rendering
+	m_imSizeID = glGetUniformLocation(renderOffscreenProg.getHandle(), "imSize");
+	m_texLevelID = glGetUniformLocation(renderOffscreenProg.getHandle(), "texLevel");
+
+	// prefixSum2d 
+	m_useRGBAID = glGetUniformLocation(prefixSumProg.getHandle(), "useRGBA");
+
+
+	//std dev
+	m_subroutine_stdDevID = glGetSubroutineUniformLocation(stdDevProg.getHandle(), GL_COMPUTE_SHADER, "launchSubroutine"); // this is wrong
+	m_stdFirstID = glGetSubroutineIndex(stdDevProg.getHandle(), GL_COMPUTE_SHADER, "firstPass");
+	m_stdSecondID = glGetSubroutineIndex(stdDevProg.getHandle(), GL_COMPUTE_SHADER, "secondPass");
+
+
 	glGenQueries(1, timeQuery);
 
 	variational_refinement_iter = 5;
@@ -138,7 +157,47 @@ void gFlow::setLocations()
 
 	  
 } 
- 
+void gFlow::allocateOffscreenRendering()
+{
+	glGenFramebuffers(1, &m_FBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+	glGenTextures(1, &m_textureFlowMinusMeanFlow);
+	glBindTexture(GL_TEXTURE_2D, m_textureFlowMinusMeanFlow);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_texture_width, m_texture_height, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_textureFlowMinusMeanFlow, 0);
+
+	// tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+	unsigned int attachments[1] = { GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, attachments);
+
+	glGenRenderbuffers(1, &m_RBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, m_RBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_texture_width, m_texture_height); // use a single renderbuffer object for both a depth AND stencil buffer.
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_RBO); // now actually attach it
+	// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glGenVertexArrays(1, &m_VAO);
+	glBindVertexArray(m_VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlistMeanTemp);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(4 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	glBindVertexArray(0);
+
+}
+
+
+
 void gFlow::setTexture(unsigned char * imageArray)
 {
 	//I1im = cv::Mat(m_texture_height, m_texture_width, CV_8UC4, imageArray);
@@ -386,7 +445,7 @@ void gFlow::allocateBuffers()
 	glDeleteBuffers(1, &m_bufferQuadlistMeanTemp);
 	glGenBuffers(1, &m_bufferQuadlistMeanTemp);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, m_bufferQuadlistMeanTemp);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 512 * 512 * sizeof(float) * 2, NULL, GL_DYNAMIC_DRAW); // some max size
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 512 * 512 * sizeof(float) * 4, NULL, GL_DYNAMIC_DRAW); // some max size
 
 
 	
@@ -449,6 +508,15 @@ void gFlow::allocateTextures(bool useInfrared)
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroValues.data());
 	glGenerateMipmap(GL_TEXTURE_2D);
 
+	m_texture_prefixSumTempSecondPass = createTexture(m_texture_prefixSumTempSecondPass, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_width, 0, GL_RG32F);
+	glBindTexture(GL_TEXTURE_2D, m_texture_prefixSumTempSecondPass);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	m_texture_prefixSumSecondPass = createTexture(m_texture_prefixSumSecondPass, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RG32F);
+	glBindTexture(GL_TEXTURE_2D, m_texture_prefixSumSecondPass);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, zeroValues.data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+
 
 	m_texture_previous_U_x_y = createTexture(m_texture_previous_U_x_y, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RG32F);
 
@@ -486,20 +554,18 @@ void gFlow::allocateTextures(bool useInfrared)
 	   
 	m_sumFlow = createTexture(m_sumFlow, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RG32F);
 
-
-
-
 	// JFA stuff
 	m_texture_jfa_0 = createTexture(m_texture_jfa_0, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RG32I);
 	m_texture_jfa_1 = createTexture(m_texture_jfa_1, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RG32I);
 
-
 	// QUADTREEE
 	m_texture_hpOriginalData = GLHelper::createTexture(m_texture_hpOriginalData, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_R32F);
 	m_texture_hpQuadtree = GLHelper::createTexture(m_texture_hpQuadtree, GL_TEXTURE_2D, numberHPLevels+1, 1 << numberHPLevels, 1 << numberHPLevels, 0, GL_R32F);
+	m_textureBLANKFLOW = createTexture(m_textureBLANKFLOW, GL_TEXTURE_2D, 1, m_texture_width, m_texture_height, 0, GL_RG32F);
+	glBindTexture(GL_TEXTURE_2D, m_textureBLANKFLOW);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RG, GL_FLOAT, oneValues.data());
 
-
-
+	//m_textureFlowMinusMeanFlow = createTexture(m_textureFlowMinusMeanFlow, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RGBA32F);
 }   
 void gFlow::wipeSumFlow()
 {
@@ -1007,39 +1073,214 @@ void gFlow::medianFilter(int level)
  
 void gFlow::calcStandardDeviation(int level)
 {
+	// get image of prefix sums
 	prefixSumProg.use();
+	glUniform1i(m_useRGBAID, 0);
 
 	glBindImageTexture(0, m_textureU_x_y, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
-	glBindImageTexture(1, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
-
-	//int w = divup(m_texture_width, 1024);
-	//int h = divup(m_texture_height, 1024);
+	glBindImageTexture(2, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
 
 	glDispatchCompute(m_texture_width, 1, 1);
-
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-	glBindImageTexture(0, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
-	glBindImageTexture(1, m_texture_prefixSum, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
-
-	glDispatchCompute(m_texture_width, 1, 1);
-
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-	stdDevProg.use();
-	glBindImageTexture(0, m_texture_prefixSum, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferQuadlist);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_bufferQuadlistMeanTemp);
-
-	int w = GLHelper::divup(m_quadlistCount, 32);
-
-	glDispatchCompute(w, 1, 1);
-
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
+	glBindImageTexture(0, m_texture_prefixSumTemp, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(2, m_texture_prefixSum, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+
+	glDispatchCompute(m_texture_width, 1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	//std::vector<float> col4(m_texture_height * m_texture_width * 4, -1.0);
+	//cv::Mat colVonfir = cv::Mat(m_texture_height, m_texture_width, CV_32FC2);
+
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_prefixSum);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, colVonfir.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
+
+	//cv::Mat imagesfir[2];
+
+	//cv::split(colVonfir, imagesfir);
+	////cv::flip(imagesfir[0], imagesfir[0], 0);
+
+	//cv::imshow("imssec", imagesfir[0]/ 10000000.0f);
+	//cv::waitKey(1);
+
+
+	// get buffer array of sums of quads
+	stdDevProg.use();
+	glBindImageTexture(0, m_texture_prefixSum, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferQuadlist);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_bufferQuadlistMeanTemp);
+	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_stdFirstID);
+
+	int widthQuadList = GLHelper::divup(m_quadlistCount, 1024);
+	glDispatchCompute(widthQuadList, 1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	std::vector<float> outputData0(m_quadlistCount * 4, -1.0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferQuadlist);
+	void *ptr0 = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	memcpy_s(outputData0.data(), outputData0.size() * sizeof(float), ptr0, outputData0.size() * sizeof(float));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	std::vector<float> outputData(m_quadlistCount*2,-1.0);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferQuadlistMeanTemp);
+	void *ptr = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	memcpy_s(outputData.data(), outputData.size() * sizeof(float), ptr, outputData.size() * sizeof(float));
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	cv::Mat outMeanImage = cv::Mat(1080, 1920, CV_32FC3);
+	int j = 0;
+	for (int i = 0; i < outputData0.size(); i+=4, j+=2)
+	{
+		int xPos = outputData0[i];
+		int yPos = outputData0[i + 1];
+		int lod = outputData0[i + 2];
+
+		float quadSideLength = float(pow(2, lod));
+
+		float xOrigin = xPos * quadSideLength + (quadSideLength * 0.5f);
+		float yOrigin = yPos * quadSideLength + (quadSideLength * 0.5f);
+
+		float xFlow = outputData[j] * 0.1;
+		float yFlow = outputData[j + 1] * 0.1;
+
+
+		cv::circle(outMeanImage, cv::Point2f(xOrigin, yOrigin), quadSideLength / 2.0, cv::Scalar(xFlow * xFlow, yFlow * yFlow, 0), -1);
+	}
+
+	cv::imshow("cirlse", outMeanImage);
+	cv:waitKey(1);
 
 
 
+
+	// get image of (x - xHat)^2
+	renderOffscreenProg.use();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glViewport(0, 0, m_texture_width, m_texture_height);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_textureU_x_y);
+
+	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+	glBindVertexArray(m_VAO);
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlist);
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, m_bufferQuadlistMeanTemp);
+
+	glm::vec2 imageSize = glm::vec2(m_texture_width >> level, m_texture_height >> level);
+	glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+	glUniform1i(m_texLevelID, level);
+
+	glDrawArrays(GL_POINTS, 0, m_quadlistCount);
+	//glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glBindVertexArray(0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//std::vector<float> col4(m_texture_height * m_texture_width * 4, -1.0);
+	//cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_32FC4);
+
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_textureFlowMinusMeanFlow);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, col4.data());
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, colVon.data);
+
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
+
+	//cv::Mat images[4];
+
+	//cv::split(colVon, images);
+	//cv::flip(images[1], images[1], 0);
+	//cv::imshow("ims", images[1]);
+ //   cv::waitKey(1);
+	//cv::Mat outImage = images[0].clone();
+
+	//for (int j = 0; j < 1080; j++)
+	//{
+	//	for (int i = 1; i < 1920; i++)
+	//	{
+	//		outImage.at<float>(j, i) = outImage.at<float>(j, i - 1) + outImage.at<float>(j, i);
+	//	}
+	//}
+
+	//for (int i = 0; i < 1920; i++)
+	//{
+	//	for (int j = 1; j < 1080; j++)
+	//	{
+	//		outImage.at<float>(j, i) = outImage.at<float>(j - 1, i) + outImage.at<float>(j, i);
+	//	}
+	//}
+	//cv::imshow("imssum", outImage / 10000000.0f);
+	//cv::waitKey(1);
+	// get prefix sum of (x - xHat)^2 
+	prefixSumProg.use();
+	glUniform1i(m_useRGBAID, 1);
+
+	glBindImageTexture(1, m_textureFlowMinusMeanFlow, level, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F);
+	glBindImageTexture(2, m_texture_prefixSumTempSecondPass, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+
+	glDispatchCompute(m_texture_width, 1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	glUniform1i(m_useRGBAID, 0);
+
+	glBindImageTexture(0, m_texture_prefixSumTempSecondPass, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindImageTexture(2, m_texture_prefixSumSecondPass, level, GL_FALSE, 0, GL_WRITE_ONLY, GL_RG32F);
+
+	glDispatchCompute(m_texture_width, 1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	//std::vector<float> col4(m_texture_height * m_texture_width * 2, -1.0);
+	//cv::Mat colVonsec = cv::Mat(m_texture_height, m_texture_width, CV_32FC2, col4.data());
+
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_texture_prefixSumSecondPass);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, colVonsec.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
+
+	//cv::Mat imagessec[2];
+
+	//cv::split(colVonsec, imagessec);
+	//cv::flip(imagessec[0], imagessec[0], 0);
+
+	//cv::imshow("imssec", imagessec[0]*0.00001f);
+	//cv::waitKey(1);
+
+
+	// get sum of (x - xHat)^2 for each quad
+	stdDevProg.use();
+	glBindImageTexture(0, m_texture_prefixSumSecondPass, level, GL_FALSE, 0, GL_READ_ONLY, GL_RG32F);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_bufferQuadlist);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_bufferQuadlistMeanTemp);
+	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_stdSecondID);
+
+	glDispatchCompute(widthQuadList, 1, 1);
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	//// re-pass this texture into the stdDev shader (but flag it to need to divide by N - 1, then take the square root!!!!) to get the sum of (x - xHat)^2 for each quad
+
+	//// the buffer output of this shader contains the std dev of each quad
+
+	//std::vector<float> outputDatastdedv(m_quadlistCount * 2, -1.0);
+
+	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferQuadlistMeanTemp);
+	//void *ptr1 = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	//memcpy_s(outputDatastdedv.data(), outputDatastdedv.size() * sizeof(float), ptr1, outputDatastdedv.size() * sizeof(float));
+	//glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
 
@@ -1542,7 +1783,10 @@ bool gFlow::calc(bool useInfrared)
 
 		medianFilter(level);
 
-		calcStandardDeviation(level);
+		if (level == 0)
+		{
+			calcStandardDeviation(level);
+		}
 
 
 		//variRef(level);  // mine, broken ish  slower   

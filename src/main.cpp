@@ -104,6 +104,7 @@ void resetFlowSize()
 	gflow.setTextureParameters(colorWidth, colorHeight);
 	gflow.allocateTextures(false);
 	gflow.allocateBuffers();
+	gflow.allocateOffscreenRendering();
 
 	grender.setBuffers(gflow.getQuadlist(), gflow.getQuadlistMeanTemp());
 
@@ -168,7 +169,7 @@ int main(int, char**)
 	gflow.allocateTextures(false);
 
 	gflow.allocateBuffers();
-
+	gflow.allocateOffscreenRendering();
 
 
 	gRenderInit();

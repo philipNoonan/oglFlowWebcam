@@ -43,6 +43,7 @@ public:
 	void setLocations();
 	void allocateBuffers();
 	void allocateTextures(bool useInfrared);
+	void allocateOffscreenRendering();
 
 	void setTextureParameters(int width, int height) { m_texture_width = width;  m_texture_height = height; }
 	void setNumLevels(int width)
@@ -171,6 +172,7 @@ private:
 	GLSLProgram hpQuadListProg;
 	GLSLProgram prefixSumProg;
 	GLSLProgram stdDevProg;
+	GLSLProgram renderOffscreenProg;
 
 	GLSLProgram densifyRasterProg;
 
@@ -221,6 +223,18 @@ private:
 	GLuint m_cutoffID;
 
 	GLuint m_hpLevelID;
+
+	// std dev
+	GLuint m_subroutine_stdDevID;
+	GLuint m_stdFirstID;
+	GLuint m_stdSecondID;
+
+	//prefixsum
+	GLuint m_useRGBAID;
+
+	//offscreen
+	GLuint m_imSizeID;
+	GLuint m_texLevelID;
 
 	/* uniforms */
 	GLuint m_level_cov_ID;
@@ -293,6 +307,9 @@ private:
 	GLuint m_texture_prefixSumTemp;
 	GLuint m_texture_prefixSum;
 
+	GLuint m_texture_prefixSumSecondPass;
+	GLuint m_texture_prefixSumTempSecondPass;
+
 	//GLuint m_textureUy;
 
 	GLuint m_textureUx_initial;
@@ -310,7 +327,14 @@ private:
 	// quadtree
 	GLuint m_texture_hpOriginalData;
 	GLuint m_texture_hpQuadtree;
+	GLuint m_textureBLANKFLOW;
 
+
+	// OFFSCREEN RENDERING STUFF
+	GLuint m_FBO;
+	GLuint m_VAO;
+	GLuint m_RBO;
+	GLuint m_textureFlowMinusMeanFlow;
 
 	// parameters
 	int m_texture_width;
@@ -334,6 +358,8 @@ private:
 
 
 	std::vector<float> zeroValues = std::vector<float>(1920 * 1080 * 4, 0.0f);
+	std::vector<float> oneValues = std::vector<float>(1920 * 1080 * 4, 1.0f);
+
 	std::vector<int> zeroValuesInt = std::vector<int>(1920 * 1080 * 4, 0);
 
 

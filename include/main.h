@@ -181,7 +181,7 @@ int videoNumber = 0;
 int videoFrameNumber = 0;
 
 std::vector<std::pair<int, int> > resoPresetPair;
-int resoPreset = 2;
+int resoPreset = 3;
 int imageNumber = 0;
 
 bool changedSource = false;

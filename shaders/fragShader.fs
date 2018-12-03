@@ -100,16 +100,22 @@ vec4 fromQuadtree()
 	//float u = (2.0 * float(gl_FragCoord.x)) / texSize.x - 1.0f; //1024.0f is the window resolution, change this to a uniform
     //float v = (2.0 * float(gl_FragCoord.y)) / texSize.y - 1.0f;
 
-	float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
-    float v = float(gl_FragCoord.y); // 0 - 1080
+	//float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
+    //float v = float(gl_FragCoord.y); // 0 - 1080
 
-	vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0-(v / 1080.0f)), 0).xy - meanFlow;
+	//vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0-(v / 1080.0f)), 0).xy - meanFlow;
 
 		//return vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	//float thresh = 0.1;
+	//float outCol = meanFlow.x > thresh || meanFlow.y > thresh ? 1.0 : 0.0;
+	//return vec4(outCol);
 
-	//return vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
+	//return vec4(meanFlow.xy * meanFlow.xy, 0 , 1);
 
-	return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
+	vec2 smoothedRes = smoothstep(vec2(0,0), vec2(5,5), meanFlow);
+	return vec4(smoothedRes.x, smoothedRes.y, 0, 1);
+
+	//return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
 
 }
 
@@ -258,8 +264,8 @@ vec4 color = vec4(0);
 
 
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
-	return vec4(1.0 - rgb, mag > 1.0 ? 1.0 : 0.0);
-	//	return vec4(1.0 - rgb, 0.5);
+	//return vec4(1.0 - rgb, mag > 1.0 ? 1.0 : 0.0);
+		return vec4(1.0 - rgb, 1.0);
 
 }
 

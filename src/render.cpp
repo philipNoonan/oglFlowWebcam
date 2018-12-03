@@ -534,7 +534,9 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
 		}

@@ -121,7 +121,8 @@ vec4 fromQuadlist()
 
 
 	// 1920.0f here is the current window size
-	gl_PointSize = max(int(quadSideLength * (1920.0/imSize.x)) - 1, 1);//outSize;//quadSideLength;//pos.x / float(origin.x) * quadSideLength;
+	//gl_PointSize = max(int(quadSideLength * (1920.0/imSize.x)) - 1, 1);
+	gl_PointSize = quadSideLength * (1920.0/imSize.x);
 
 	return vec4(pos.x, -pos.y, pos.z, pos.w);
 

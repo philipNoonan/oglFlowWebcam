@@ -5,16 +5,24 @@ layout(local_size_x = 1024) in;
 shared vec2 shared_data[gl_WorkGroupSize.x * 2];
 
 layout(binding = 0, rg32f) readonly uniform image2D input_image;
-layout(binding = 1, rg32f) writeonly uniform image2D output_image;
+layout(binding = 1, rgba32f) readonly uniform image2D input_image_rgba;
+layout(binding = 2, rg32f) writeonly uniform image2D output_image;
+
+uniform int useRGBA;
 
 void main(void)
 {
     uint id = gl_LocalInvocationID.x;
 
-    uvec2 imSize = imageSize(input_image).xy;
+    if (useRGBA == 1)
+    {
+        uvec2 imSize = imageSize(input_image_rgba).xy;
+    }
+    else
+    {
+        uvec2 imSize = imageSize(input_image).xy;
+    }
 
-    if (id > imSize.x)
-        return;
 
     uint rd_id;
     uint wr_id;
@@ -26,9 +34,17 @@ void main(void)
     uint step = 0;
 
 
+    if (useRGBA == 1)
+    {
+        shared_data[P0.x] = imageLoad(input_image_rgba, P0).xy;
+        shared_data[P1.x] = imageLoad(input_image_rgba, P1).xy;
+    }
+    else
+    {
+        shared_data[P0.x] = imageLoad(input_image, P0).xy;
+        shared_data[P1.x] = imageLoad(input_image, P1).xy;
+    }
 
-    shared_data[P0.x] = imageLoad(input_image, P0).xy;
-    shared_data[P1.x] = imageLoad(input_image, P1).xy;
 
     barrier();
 
