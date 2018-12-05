@@ -16,7 +16,7 @@ layout (location = 9) in vec3 posePoints;
 layout (location = 10) in vec3 handsPoints; 
 
 layout (location = 11) in vec4 quadlist; 
-layout (location = 12) in vec2 quadlistMeanTemp; 
+layout (location = 12) in vec4 quadlistMeanTemp; 
 
 //layout (std430, binding = 7) buffer trackedPoints; 
 
@@ -28,7 +28,7 @@ uniform vec2 imSize;
 
 out vec2 TexCoord;
 out float zDepth;
-out vec2 meanFlow;
+out vec2 stdDev;
 
 subroutine vec4 getPosition();
 subroutine uniform getPosition getPositionSubroutine;
@@ -103,12 +103,12 @@ vec4 fromQuadlist()
 	// uint yPos = (octlist & 8372224) >> 14;
 	// uint zPos = (octlist & 16352) >> 5;
 	// uint lod = (octlist & 31);
-
+	/*
 	uint xPos = uint(quadlist.x);
 	uint yPos = uint(quadlist.y);
 	uint lod = uint(quadlist.z);
 
-	meanFlow = quadlistMeanTemp;
+	stdDev = quadlistMeanTemp.xy;
 
 	float quadSideLength = float(pow(2, lod)); //
 
@@ -122,9 +122,17 @@ vec4 fromQuadlist()
 
 	// 1920.0f here is the current window size
 	//gl_PointSize = max(int(quadSideLength * (1920.0/imSize.x)) - 1, 1);
-	gl_PointSize = quadSideLength * (1920.0/imSize.x);
+	gl_PointSize = quadSideLength * (1280.0/imSize.x);
 
 	return vec4(pos.x, -pos.y, pos.z, pos.w);
+	*/
+
+	float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u); // u is just the type qualifer, like f, i think
+    float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u); 
+
+	TexCoord = vec2(x, 1.0 - y);
+
+	return vec4(-1.0f + x*2.0f, -1.0f+y*2.0f, 0.f, 1.0f);
 
 }
 

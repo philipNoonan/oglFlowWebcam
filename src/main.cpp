@@ -18,7 +18,7 @@ void gRenderInit()
 	grender.setVertPositions();
 	grender.allocateBuffers();
 	grender.allocateTextures();
-	grender.setTextures(gflow.getColorTexture(), gflow.getEdgesTexture()); //needs texture uints from gfusion init
+	grender.setTextures(gflow.getColorTexture(), gflow.getEdgesTexture(), gflow.getFlowMinusMeanFlowTexture()); //needs texture uints from gfusion init
 //krender.genTexCoordOffsets(1, 1, 1.0f);
 }
 
@@ -46,8 +46,8 @@ void searchForMedia()
 	videosFromFile.resize(0);
 	imagesFromFile.resize(0);
 
-	//cv::String pathVideos("videos/*.wmv"); //select only wmv
-	cv::String pathVideos("videos/*.mp4"); //select only mkv
+	cv::String pathVideos("videos/*.wmv"); //select only wmv
+	//cv::String pathVideos("videos/*.mp4"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
 	cv::glob(pathVideos, fnVideos, true); // recurse

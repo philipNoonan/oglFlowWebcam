@@ -23,12 +23,22 @@ void main()
 	float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
     float v = float(gl_FragCoord.y); // 0 - 1080
 
-	vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0 - (v / 1080.0f)), 0).xy - meanFlow;
+	vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1280.0f), (v / 720.0f)), 0).xy - vec2(meanFlow.x, meanFlow.y);
 
-	//	color = vec4(1.0f, 0.9, 0.8, 1.0);
+	//	color = vec4(1.0f,1.0, 0.0, 1.0);
 
-	color = vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
+	//if (u > 640)
+	//{
+	//	color = vec4(meanFlow.x * meanFlow.x, meanFlow.y * meanFlow.y, 0, 1);
+	//
+	//}
+	//else
+	//{
+		color = vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
 
-	//color = vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
+	//}
+
+
+
 
 }

@@ -102,7 +102,10 @@ public:
 	{
 		return m_trackedPointsBuffer;
 	}
-
+	GLuint getFlowMinusMeanFlowTexture()
+	{
+		return m_textureFlowMinusMeanFlow;
+	}
 	void setVals(float a, float b)
 	{
 		m_valA = a;
@@ -228,6 +231,7 @@ private:
 	GLuint m_subroutine_stdDevID;
 	GLuint m_stdFirstID;
 	GLuint m_stdSecondID;
+	GLuint m_quadListCountID;
 
 	//prefixsum
 	GLuint m_useRGBAID;
@@ -353,12 +357,14 @@ private:
 
 	uint32_t m_quadlistCount;
 
+	uint32_t m_numberHPLevels;
+
 	int m_numLevels;// = (int)(log((2 * 1920) / (4.0 * m_patch_size)) / log(2.0) + 0.5) - 1;
 
 
 
 	std::vector<float> zeroValues = std::vector<float>(1920 * 1080 * 4, 0.0f);
-	std::vector<float> oneValues = std::vector<float>(1920 * 1080 * 4, 1.0f);
+	std::vector<float> oneValues = std::vector<float>(1920 * 1080 * 2, 1.0f);
 
 	std::vector<int> zeroValuesInt = std::vector<int>(1920 * 1080 * 4, 0);
 

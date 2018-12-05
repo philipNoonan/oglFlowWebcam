@@ -13,15 +13,17 @@ uniform int useRGBA;
 void main(void)
 {
     uint id = gl_LocalInvocationID.x;
+    uvec2 imSize;
 
     if (useRGBA == 1)
     {
-        uvec2 imSize = imageSize(input_image_rgba).xy;
+        imSize = imageSize(input_image_rgba).xy;
     }
     else
     {
-        uvec2 imSize = imageSize(input_image).xy;
+        imSize = imageSize(input_image).xy;
     }
+
 
 
     uint rd_id;
@@ -59,6 +61,6 @@ void main(void)
         barrier();
     }
 
-    imageStore(output_image, P0.yx, vec4(shared_data[P0.x], 0, 0));
-    imageStore(output_image, P1.yx, vec4(shared_data[P1.x], 0, 0));
+    imageStore(output_image, P0.yx, vec4(shared_data[P0.x], 0, 1));
+    imageStore(output_image, P1.yx, vec4(shared_data[P1.x], 0, 1));
 }

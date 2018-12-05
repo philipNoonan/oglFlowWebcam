@@ -59,10 +59,13 @@ subroutine uniform launchSubroutine hpQuadtreeSubroutine;
 subroutine(launchSubroutine)
 bool hpDiscriminator()
 {
-    // temp fix for non equal sized images, get the 512x512 bit centred on the centre
     vec2 texSize = vec2(textureSize(originalDataVolumeTextureRG, 0).xy);
 
     vec3 readPix = vec3(gl_GlobalInvocationID.xyz);
+    if (readPix.x > texSize.x || readPix.y > texSize.y)
+    {
+        return false;
+    }
 
     //float inputValue = texelFetch(originalDataVolumeTexture, ivec2(readPix.xy), 0).x;
     vec2 inputVec2 = texelFetch(originalDataVolumeTextureRG, ivec2(readPix.x, readPix.y), 0).xy;

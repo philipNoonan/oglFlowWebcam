@@ -85,7 +85,7 @@ public:
 	void setVertPositions();
 	void allocateBuffers();
 	void allocateTextures();
-	void setTextures(GLuint colorTex, GLuint edgesTex);
+	void setTextures(GLuint colorTex, GLuint edgesTex, GLuint fmmfTex);
 	void setBuffers(GLuint quadlist, GLuint quadlistMeanTemp);
 	void setFlowTexture(GLuint flowTex);
 	void setDistanceTexture(GLuint distTex)
@@ -249,6 +249,7 @@ private:
 	GLuint m_textureFlow;
 	GLuint m_textureEdges;
 	GLuint m_textureDistance;
+	GLuint m_textureFlowMinusMeanFlow;
 
 	GLuint m_bufferQuadlist;
 	GLuint m_bufferQuadlistMeanTemp;

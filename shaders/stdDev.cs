@@ -4,6 +4,8 @@ layout(local_size_x = 1024) in;
 
 layout(binding = 0, rg32f) uniform image2D prefixSumFlow;
 
+uniform uint quadListCount;
+
 layout(std430, binding = 0) buffer quadlistBuf
 {
     vec4 quadlist [];
@@ -22,13 +24,21 @@ void firstPass(in uint index, in vec2 xSum, in float quadSideLength)
 {
     vec2 xMean = xSum / (quadSideLength * quadSideLength);
 
-    outputMeanTemp[index] = xMean;
+    if (xSum.x == 0 || xSum.y ==0)
+    {
+        outputMeanTemp[index] = vec2(0);
+    }
+    else
+    {
+        outputMeanTemp[index] = xMean;
+    }
+
 }
 
 subroutine(launchSubroutine)
 void secondPass(in uint index, in vec2 xSum, in float quadSideLength)
 {
-    vec2 stdDev = sqrt(xSum / ((quadSideLength * quadSideLength) - 1.0));
+    vec2 stdDev = sqrt(xSum / ((quadSideLength * quadSideLength) - 1)); // sqrt(xSum / ((quadSideLength * quadSideLength) - 1.0));
 
     if (isinf(stdDev.x) || isnan(stdDev.x) || isinf(stdDev.y) || isnan(stdDev.y))
     {
@@ -44,7 +54,13 @@ void main()
 {
     uint index = gl_GlobalInvocationID.x;
 
+    if (index > quadListCount)
+    {
+        return;
+    }
+
     ivec2 pos = ivec2(quadlist[index].x, quadlist[index].y);
+
 
 
     //uint xPos = uint(quadlist.x);
@@ -54,8 +70,12 @@ void main()
     float quadSideLength = float(pow(2, lod)); //
     float shiftedQSL = quadSideLength - 1.0f;
 
-    vec2 origin = vec2(pos * quadSideLength) + (quadSideLength * 0.5f); // 
+    vec2 origin = vec2(pos * quadSideLength) - 1.0f; // 
 
+    if (origin.x > 1280 - quadSideLength || origin.y > 720 - quadSideLength)
+    {
+        return;
+    }
     //vec2 origin = ((vec2(xPos, yPos) * quadSideLength) + (quadSideLength * 0.5f)); // 
 
     // vec2 A, B, C, D;
@@ -76,14 +96,14 @@ void main()
     // from the spec Note: Load operations from any texel that is outside of the boundaries of the bound image will return all zeros.
     // This is desirable for us
 
-    vec2 A = imageLoad(prefixSumFlow, ivec2(origin) - ivec2(1, 1)).xy;
-    vec2 B = imageLoad(prefixSumFlow, ivec2(origin.x + shiftedQSL, origin.y - 1)).xy;
-    vec2 C = imageLoad(prefixSumFlow, ivec2(origin.x - 1, origin.y + shiftedQSL)).xy;
-    vec2 D = imageLoad(prefixSumFlow, ivec2(origin.x + shiftedQSL, origin.y + shiftedQSL)).xy;
+    vec2 A = imageLoad(prefixSumFlow, ivec2(origin)).xy;
+    vec2 B = imageLoad(prefixSumFlow, ivec2(origin.x + quadSideLength, origin.y)).xy;
+    vec2 C = imageLoad(prefixSumFlow, ivec2(origin.x, origin.y + quadSideLength)).xy;
+    vec2 D = imageLoad(prefixSumFlow, ivec2(origin.x + quadSideLength, origin.y + quadSideLength)).xy;
 
 
-      vec2 xSum = A + D - B - C;
-   // vec2 xSum = C + B - D - A;
+    vec2 xSum = A + D - B - C;
+    //vec2 xSum = C + B - D - A;
 
 
     stdDevSubroutine(index, xSum, quadSideLength);

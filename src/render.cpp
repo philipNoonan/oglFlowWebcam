@@ -269,11 +269,12 @@ void gRender::setRenderingOptions(bool showDepthFlag, bool showBigDepthFlag, boo
 	m_showQuadsFlag = showQuads;
 }
 
-void gRender::setTextures(GLuint colorTex, GLuint edgesTex)
+void gRender::setTextures(GLuint colorTex, GLuint edgesTex, GLuint fmmfTex)
 {
 
 	m_textureColor = colorTex;
 	m_textureEdges = edgesTex;
+	m_textureFlowMinusMeanFlow = fmmfTex;
 	
 
 }
@@ -496,7 +497,9 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+
 		}
 
 		if (m_showFlowFlag)
@@ -564,7 +567,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 
 			//MVP = glm::translate(MVP, glm::vec3(0.0f, 0.0f, 0.5f));
 			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, m_textureFlow);
+			glBindTexture(GL_TEXTURE_2D, m_textureFlowMinusMeanFlow);
 
 			//glUniformMatrix4fv(m_MvpFlowID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
@@ -573,8 +576,11 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromQuadlistID);
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromQuadtreeID);
 			//glDrawArrays(GL_POINTS, 0, 2);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
 
-			glDrawArrays(GL_POINTS, 0, m_quadlistCount);
+			//glDrawArrays(GL_POINTS, 0, m_quadlistCount);
+
+
 		}
 
 		if (m_showPointFlag)

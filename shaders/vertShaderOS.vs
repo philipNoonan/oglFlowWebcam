@@ -1,7 +1,7 @@
 #version 430 core
 
 layout (location = 0) in vec4 quadlist; 
-layout (location = 1) in vec2 quadlistMeanTemp; 
+layout (location = 1) in vec4 quadlistMeanTemp; 
 
 uniform vec2 imSize;
 
@@ -22,16 +22,16 @@ void main()
 	uint yPos = uint(quadlist.y);
 	uint lod = uint(quadlist.z);
 
-	meanFlow = quadlistMeanTemp;
+	meanFlow = quadlistMeanTemp.xy;
 
 	float quadSideLength = float(pow(2, lod)); //
 
 	vec2 origin = ((vec2(xPos, yPos) * quadSideLength) + (quadSideLength * 0.5f)); // 
  
-	vec4 pos = vec4((origin.x / (1920.0f / 2.0f))-1.0f, (origin.y / (1080.0f / 2.0f)) - 1.0f, 0.0f, 1.0f);
+	vec4 pos = vec4((origin.x / (1280.0f / 2.0f))-1.0f, (origin.y / (720.0f / 2.0f)) - 1.0f, 0.0f, 1.0f);
 
 	gl_PointSize = quadSideLength;
-	gl_Position = vec4(pos.x, -pos.y, pos.z, pos.w);
+	gl_Position = vec4(pos.x, pos.y, pos.z, pos.w);
 
 /*
 

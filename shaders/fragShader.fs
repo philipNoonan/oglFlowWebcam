@@ -15,7 +15,7 @@ layout(binding = 5, rg16i) uniform iimage3D volumeData; // texel access
 
 in vec2 TexCoord;
 in float zDepth;
-in vec2 meanFlow;
+in vec2 stdDev;
 
 layout(location = 0) out vec4 color;
 
@@ -100,20 +100,23 @@ vec4 fromQuadtree()
 	//float u = (2.0 * float(gl_FragCoord.x)) / texSize.x - 1.0f; //1024.0f is the window resolution, change this to a uniform
     //float v = (2.0 * float(gl_FragCoord.y)) / texSize.y - 1.0f;
 
-	//float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
-    //float v = float(gl_FragCoord.y); // 0 - 1080
+	float u = float(gl_FragCoord.x); // 0 - windowSize (1920)
+    float v = float(gl_FragCoord.y); // 0 - 1080
 
-	//vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0-(v / 1080.0f)), 0).xy - meanFlow;
+	vec2 tFlow = textureLod(currentTextureFlow, vec2((u / 1920.0f), 1.0-(v / 1080.0f)), 0).xy;
+
+	//return vec4(tFlow.xy, 0, 1);
 
 		//return vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	//float thresh = 0.1;
-	//float outCol = meanFlow.x > thresh || meanFlow.y > thresh ? 1.0 : 0.0;
-	//return vec4(outCol);
+	float thresh = 0.5;
+    float outCol = tFlow.x > thresh || tFlow.y > thresh ? 1.0 : 0.0;
+	return vec4(114.0/255.0,144.0/255.0,154.0/255.0,outCol);
+	//	return vec4(1,1,1,outCol);
 
-	//return vec4(meanFlow.xy * meanFlow.xy, 0 , 1);
+	//return vec4(stdDev, 0 , 1);
 
-	vec2 smoothedRes = smoothstep(vec2(0,0), vec2(5,5), meanFlow);
-	return vec4(smoothedRes.x, smoothedRes.y, 0, 1);
+	//vec2 smoothedRes = smoothstep(vec2(0,0), vec2(10,10), meanFlow);
+	//return vec4(length(smoothedRes).xxx, 1);
 
 	//return vec4(tFlow.x * tFlow.x, tFlow.y * tFlow.y, 0, 1); 
 
@@ -252,7 +255,7 @@ vec4 color = vec4(0);
 	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(ang + K.xyz) * 6.0 - K.www);
 
-    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * ((texLevel + 1.0) / 16.0));
+    vec3 rgb = mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), mag * ((texLevel + 1.0) / 8.0));
 
 	//return vec4(1.1 * tFlow.x * tFlow.x, 1.1 * tFlow.y * tFlow.y, 0, 1); 
 
