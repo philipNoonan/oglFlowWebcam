@@ -1842,7 +1842,7 @@ bool gFlow::calc(bool useInfrared)
 		 
 		densification(level);
 
-		//medianFilter(level);
+		medianFilter(level);
 
 		if (level == 0)
 		{

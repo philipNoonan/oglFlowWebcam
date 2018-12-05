@@ -255,8 +255,8 @@ void patchInverseSearch()
             }
         }
       
-    float xCoord_sparse = ( float(pix_sparse.x) + 0.5) / ( float(imSize.x / 4));
-    float yCoord_sparse = ( float(pix_sparse.y) + 0.5) / ( float(imSize.y / 4));
+    float xCoord_sparse = ( float(pix_sparse.x)) / ( float(imSize.x / 4));
+    float yCoord_sparse = ( float(pix_sparse.y)) / ( float(imSize.y / 4));
 
     //vec4 inputProd = texelFetch(tex_prod_I0_xx_yy_xy, pix_sparse, level);
     //vec4 inputSum = texelFetch(tex_sum_I0_x_y, pix_sparse, level);
@@ -291,13 +291,13 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 
 ////////////////// INITPOSE IS TEH WRONGSZROSSOSOS FIX ME PLS
 
-// initFlowXY = imageLoad(previous_layer_flow_texture_x_y, ivec2(gl_GlobalInvocationID.x* 4 + psz2, gl_GlobalInvocationID.y* 4 + psz2)).xy; // get the flow from the centre of the patch
+ initFlowXY = imageLoad(previous_layer_flow_texture_x_y, ivec2(gl_GlobalInvocationID.x* 4 + psz2, gl_GlobalInvocationID.y* 4 + psz2)).xy; // get the flow from the centre of the patch
 //vec2 tf = textureLod(tex_flow_previous, vec2(xCoord, yCoord), level + 1).xy;
 
-   initFlowXY =  textureLod(tex_flow_initial, vec2(xCoord, yCoord), level).xy;
+  // initFlowXY =  textureLod(tex_flow_initial, vec2(xCoord, yCoord), level).xy;
 
-    initFlowXY.x /= float(pow(2, level)); // dont need this if we are directly copying each mip map level rather than only top then mipmapping from top
-    initFlowXY.y /= float(pow(2, level)); 
+    initFlowXY.x /= float(pow(2, level+1)); // dont need this if we are directly copying each mip map level rather than only top then mipmapping from top
+    initFlowXY.y /= float(pow(2, level+1)); 
 
     
 
@@ -311,8 +311,8 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
     {
         for (int j = 0; j < patch_size; j++)
         {
-            xCoord_init = (( (float(gl_GlobalInvocationID.x) * psz2 + initFlowXY.x + float(i))) / (float(imSize.x)));
-            yCoord_init = (( (float(gl_GlobalInvocationID.y) * psz2 + initFlowXY.y + float(j))) / (float(imSize.y)));
+            xCoord_init = (( (float(gl_GlobalInvocationID.x) * 4.0 + initFlowXY.x + float(i))) / (float(imSize.x)));
+            yCoord_init = (( (float(gl_GlobalInvocationID.y) * 4.0 + initFlowXY.y + float(j))) / (float(imSize.y)));
         //    y_data_init[i][j] = luminance(textureLod(tex_I1, vec2((float(gl_GlobalInvocationID.x) * 4.0f + initFlowXY.x + float(i)) / float(imSize.x), (float(gl_GlobalInvocationID.y) * 4.0f + initFlowXY.y + float(j)) / float(imSize.y)), level).xyz);
                 if (imageType == 0)
                 {
@@ -338,7 +338,7 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //
 // LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // 
-    for (int iter_outer = 0; iter_outer<level +2 ; iter_outer++) // the more iterations the slower it becomes, obviously
+    for (int iter_outer = 0; iter_outer< level + 4; iter_outer++) // the more iterations the slower it becomes, obviously
     {
         if (iter_outer == 0)
         {
@@ -358,8 +358,8 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
         {
             for (int j = 0; j < patch_size; j++)
             {
-                float xCoord_prev = (( (float(gl_GlobalInvocationID.x) * psz2 + prevFlowXY.x + float(i))) / ( float(imSize.x)));
-                float yCoord_prev = (( (float(gl_GlobalInvocationID.y) * psz2 + prevFlowXY.y + float(j))) / ( float(imSize.y)));
+                float xCoord_prev = (( (float(gl_GlobalInvocationID.x) * 4.0 + prevFlowXY.x + float(i))) / ( float(imSize.x)));
+                float yCoord_prev = (( (float(gl_GlobalInvocationID.y) * 4.0 + prevFlowXY.y + float(j))) / ( float(imSize.y)));
                 if (imageType == 0)
                 {
                     y_data[i][j] = textureLod(tex_I1, vec2(xCoord_prev, yCoord_prev), level).x;
@@ -404,8 +404,8 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //        {
 //            for (int j = 0; j<patch_size; j++)
 //            {
-//                float xCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + dir + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
-//                float yCoord_dir0 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
+//                float xCoord_dir0 = (((float(gl_GlobalInvocationID.x) * 4.0 + dir + Ux + float(i))) / (float(imSize.x)));
+//                float yCoord_dir0 = (((float(gl_GlobalInvocationID.y) * 4.0 + Uy + float(j))) / (float(imSize.y)));
 //                if (imageType == 0)
 //                {
 //                    y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).x;
@@ -436,8 +436,8 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //{
 //    for (int j = 0; j<patch_size; j++)
 //    {
-//            float xCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.x) * 4.0 + Ux + float(i)) + 1.0) / (2.0 * float(imSize.x)));
-//float yCoord_dir1 = ((2.0 * (float(gl_GlobalInvocationID.y) * 4.0 + dir + Uy + float(j)) + 1.0) / (2.0 * float(imSize.y)));
+//            float xCoord_dir1 = (((float(gl_GlobalInvocationID.x) * 4.0 + Ux + float(i))) / (float(imSize.x)));
+//            float yCoord_dir1 = (((float(gl_GlobalInvocationID.y) * 4.0 + dir + Uy + float(j))) / (float(imSize.y)));
 //        if (imageType == 0)
 //        {
 //            y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).x;
@@ -541,7 +541,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
                      * (more than patch size) then we don't use it. Noticeably improves the robustness.
                      */
         vec2 theVec = vec2(cur_Ux - Ux, cur_Uy - Uy);
-        if (length(theVec) < 4)
+        if (length(theVec) < 8)
         {
             imageStore(im_S_x_y, pix_sparse, vec4(cur_Ux, cur_Uy, 0, 0)); 
         }

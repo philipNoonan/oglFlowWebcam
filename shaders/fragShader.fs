@@ -267,8 +267,8 @@ vec4 color = vec4(0);
 
 
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
-	//return vec4(1.0 - rgb, mag > 1.0 ? 1.0 : 0.0);
-		return vec4(1.0 - rgb, 1.0);
+	return vec4(1.0 - rgb, mag > 0.5 ? 1.0 : 0.0);
+	//	return vec4(1.0 - rgb, 1.0);
 
 }
 

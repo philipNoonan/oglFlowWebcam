@@ -72,6 +72,7 @@ void gRender::setLocations()
 	m_sliceID = glGetUniformLocation(renderProg.getHandle(), "slice");
 	m_imSizeID = glGetUniformLocation(renderProg.getHandle(), "imSize");
 	m_texLevelID = glGetUniformLocation(renderProg.getHandle(), "texLevel");
+	m_zOffID = glGetUniformLocation(renderProg.getHandle(), "zOff");
 
 	m_getPositionSubroutineID = glGetSubroutineUniformLocation(renderProg.getHandle(), GL_VERTEX_SHADER, "getPositionSubroutine");
 	m_fromTextureID = glGetSubroutineIndex(renderProg.getHandle(), GL_VERTEX_SHADER, "fromTexture");
@@ -476,6 +477,8 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
+			glUniform1f(m_zOffID, 0.0f);
+
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 
 			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -496,6 +499,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromEdgesID);
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
+			glUniform1f(m_zOffID, 0.0f);
 
 			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -515,6 +519,7 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromFlowID);
 			//glUniformMatrix4fv(m_ProjectionID, 1, GL_FALSE, glm::value_ptr(m_projection));
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
+			glUniform1f(m_zOffID, -0.1f);
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
 			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -537,6 +542,8 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformMatrix4fv(m_MvpID, 1, GL_FALSE, glm::value_ptr(MVP));
 			glUniform2fv(m_imSizeID, 1, glm::value_ptr(imageSize));
 			glUniform1i(m_texLevelID, m_texLevel);
+			glUniform1f(m_zOffID, 0.0f);
+
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 
 			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -576,6 +583,8 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &m_fromQuadlistID);
 			glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &m_fromQuadtreeID);
 			//glDrawArrays(GL_POINTS, 0, 2);
+			glUniform1f(m_zOffID, -0.2f);
+
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 
 			//glDrawArrays(GL_POINTS, 0, m_quadlistCount);

@@ -25,6 +25,7 @@ uniform mat4 ViewProjection;
 uniform mat4 projection;
 uniform mat4 MVP;
 uniform vec2 imSize;
+uniform float zOff;
 
 out vec2 TexCoord;
 out float zDepth;
@@ -50,7 +51,7 @@ vec4 fromStandardTexture()
 
 	TexCoord = vec2(x, 1.0 - y);
 
-	return vec4(-1.0f + x*2.0f, -1.0f+y*2.0f, 0.1f, 1.0f);
+	return vec4(-1.0f + x*2.0f, -1.0f+y*2.0f, zOff, 1.0f);
 }
 
 subroutine(getPosition)

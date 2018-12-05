@@ -199,6 +199,7 @@ private:
 	GLuint m_programID;
 	GLuint m_ProjectionID;
 	GLuint m_MvpID;
+	GLuint m_zOffID;
 	GLuint m_ModelID;
 	GLuint m_ViewProjectionID;
 	GLuint m_sliceID;
