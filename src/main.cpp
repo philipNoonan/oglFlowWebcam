@@ -46,7 +46,9 @@ void searchForMedia()
 	videosFromFile.resize(0);
 	imagesFromFile.resize(0);
 
-	cv::String pathVideos("videos/*.wmv"); //select only wmv
+	cv::String pathVideos("videos/*.avi"); //select only wmv
+
+	//cv::String pathVideos("videos/*.wmv"); //select only wmv
 	//cv::String pathVideos("videos/*.mp4"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
@@ -183,7 +185,7 @@ int main(int, char**)
 	gflood.setLocations();
 
 
-
+	double lastTime = glfwGetTime();
 	// Main loop
 	while (!glfwWindowShouldClose(window))
 	{

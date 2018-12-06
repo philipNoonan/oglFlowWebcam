@@ -1206,24 +1206,24 @@ void gFlow::calcStandardDeviation(int level)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	////std::vector<float> col4(m_texture_height * m_texture_width * 4, -1.0);
-	cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_32FC4);
+	//cv::Mat colVon = cv::Mat(m_texture_height, m_texture_width, CV_32FC4);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_textureFlowMinusMeanFlow);
-	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, col4.data());
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, colVon.data);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_textureFlowMinusMeanFlow);
+	////glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, col4.data());
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, colVon.data);
 
-	glBindTexture(GL_TEXTURE_2D, 0);
-	//glActiveTexture(0);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	////glActiveTexture(0);
 
-	cv::Mat images[4];
+	//cv::Mat images[4];
 
-	cv::split(colVon, images);
-	//cv::flip(images[1], images[1], 0);
-	//cv::flip(images[0], images[0], 0);
+	//cv::split(colVon, images);
+	////cv::flip(images[1], images[1], 0);
+	////cv::flip(images[0], images[0], 0);
 
-	cv::imshow("ims", 0.1 *(images[0] + images[1]));
-    cv::waitKey(1);
+	//cv::imshow("ims", 0.1 *(images[0] + images[1]));
+ //   cv::waitKey(1);
 
 
 //	cv::Mat outImage = images[0].clone();
@@ -1402,20 +1402,20 @@ void gFlow::variationalRefinement(int level)
 
 	glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, m_texture_width >> level, m_texture_height >> level, GL_RG, GL_FLOAT, sxx4.data);
 
-	if (level == 0)
-	{
-		cv::Mat mag, ang;
-		cv::Mat hsv_split[3], hsv;
-		cv::Mat rgb;
-		cv::cartToPolar(image2[0], image2[1], mag, ang, true);
-		cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
-		hsv_split[0] = ang;
-		hsv_split[1] = mag;
-		hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
-		cv::merge(hsv_split, 3, hsv);
-		cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
-		cv::imshow("flowvar", rgb);
-	}
+	//if (level == 0)
+	//{
+	//	cv::Mat mag, ang;
+	//	cv::Mat hsv_split[3], hsv;
+	//	cv::Mat rgb;
+	//	cv::cartToPolar(image2[0], image2[1], mag, ang, true);
+	//	cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
+	//	hsv_split[0] = ang;
+	//	hsv_split[1] = mag;
+	//	hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
+	//	cv::merge(hsv_split, 3, hsv);
+	//	cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
+	//	cv::imshow("flowvar", rgb);
+	//}
 
 	 
 
@@ -1844,20 +1844,24 @@ bool gFlow::calc(bool useInfrared)
 
 		medianFilter(level);
 
-		if (level == 0)
+		//if (level == 0)
+		//{
+		//	calcStandardDeviation(level);
+		//}
+
+
+		if (level > 1)
 		{
-			//calcStandardDeviation(level);
+			variRef(level);  // mine, broken ish  slower   
+
 		}
-
-
-		//variRef(level);  // mine, broken ish  slower   
 
 
 		  
 		//if (level > 2) // dont need to densify finest level?   
 		//{
 		//	variationalRefinement(level); // opencv, slow
-
+		//}
 		//	//variRef(level);  // mine, broken ish  slower   
 
 
