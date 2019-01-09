@@ -46,7 +46,7 @@ vec4 fromColor()
 	vec4 tColor = texelFetch(currentTextureColor, ivec2(TexCoord.x * texSize.x, TexCoord.y * texSize.y), texLevel);
 
 	//vec4 tColor = textureLod(currentTextureColor, vec2(TexCoord), texLevel);
-	return tColor.zyxw;
+	return vec4(tColor.zyx, 1.0);
 }
 
 
@@ -267,8 +267,8 @@ vec4 color = vec4(0);
 
 
 	//return vec4(tFlow.x < 0 ? 1 : 0, tFlow.y < 0 ? 1 : 0, 0, 1);
-	return vec4(1.0 - rgb, mag > 0.5 ? 1.0 : 0.0);
-	//	return vec4(1.0 - rgb, 1.0);
+	//return vec4(1.0 - rgb, mag > 0.1 ? 1.0 : 0.0);
+		return vec4(1.0 - rgb, 1.0);
 
 }
 

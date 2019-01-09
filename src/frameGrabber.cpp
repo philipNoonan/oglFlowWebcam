@@ -83,6 +83,7 @@ void FrameGrabber::captureVideoFrameLoop()
 
 	m_cap.set(CV_CAP_PROP_POS_FRAMES, m_videoFrameNumber);
 	m_videoFrameNumber++;
+	//std::memcpy()
 
 	if (m_videoFrameNumber > m_cap.get(CV_CAP_PROP_FRAME_COUNT) - 50)
 	{

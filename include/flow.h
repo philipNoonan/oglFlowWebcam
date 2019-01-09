@@ -42,7 +42,7 @@ public:
 	void compileAndLinkShader();
 	void setLocations();
 	void allocateBuffers();
-	void allocateTextures(bool useInfrared);
+	void allocateTextures(int nChn);
 	void allocateOffscreenRendering();
 
 	void setTextureParameters(int width, int height) { m_texture_width = width;  m_texture_height = height; }
@@ -55,7 +55,7 @@ public:
 		m_cutoff = (uint32_t)cOff;
 	}
 	//void setTexture(GLuint texID) { m_textureI1 = texID; }
-	void setTexture(unsigned char * imageArray);
+	void setTexture(unsigned char * imageArray, int nChn);
 	void setTexture(float * imageArray);
 
 	void computeSobel(int level, bool useInfrared);

@@ -338,7 +338,7 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //
 // LOOPING STARTS HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // 
-    for (int iter_outer = 0; iter_outer< level + 1; iter_outer++) // the more iterations the slower it becomes, obviously
+    for (int iter_outer = 0; iter_outer< level + 2; iter_outer++) // the more iterations the slower it becomes, obviously
     {
         if (iter_outer == 0)
         {
@@ -492,7 +492,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
 //imageStore(test_texture, pix_sparse, vec4(min_SSD));
 
 
-        for (int t = 0; t < level + 1; t++) // CHANE+GE ME TO ITER!!!
+        for (int t = 0; t < level + 2; t++) // CHANE+GE ME TO ITER!!!
         {
             barrier();
 

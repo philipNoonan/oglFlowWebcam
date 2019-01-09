@@ -198,14 +198,24 @@ void gFlow::allocateOffscreenRendering()
 
 
 
-void gFlow::setTexture(unsigned char * imageArray)
+void gFlow::setTexture(unsigned char * imageArray, int nChn)
 {
 	//I1im = cv::Mat(m_texture_height, m_texture_width, CV_8UC4, imageArray);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, m_textureI1);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGBA, GL_UNSIGNED_BYTE, imageArray);
-	glGenerateMipmap(GL_TEXTURE_2D); 
+	if (nChn == 4)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_textureI1);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGBA, GL_UNSIGNED_BYTE, imageArray);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else if (nChn == 3)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_textureI1);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGB, GL_UNSIGNED_BYTE, imageArray);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 
 	//theErr = glGetError(); 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS); 
@@ -213,37 +223,68 @@ void gFlow::setTexture(unsigned char * imageArray)
 
 
 
-	if (firstFrame)  
-	{ 
 
-		glCopyImageSubData(m_textureI1, GL_TEXTURE_2D, 0, 0, 0, 0, 
-							m_textureI0, GL_TEXTURE_2D, 0, 0, 0, 0,
-							m_texture_width, m_texture_height, 1);
-		firstFrame = false; 
-
-		//I1im.copyTo(I0im);
-	}   
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, m_textureI0); 
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 
 	  
-//	cv::Mat col = cv::Mat(m_texture_height / 2, m_texture_width / 2, CV_8UC4);
-	//  
+	//cv::Mat col1 = cv::Mat(m_texture_height / 1, m_texture_width / 1, CV_8UC4);
+	//cv::Mat col2 = cv::Mat(m_texture_height / 2, m_texture_width / 2, CV_8UC4);
+
 
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, m_textureI1);
-	//glGetTexImage(GL_TEXTURE_2D, 1, GL_RGBA, GL_UNSIGNED_BYTE, col.data);
+	//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, col1.data);
 	//glBindTexture(GL_TEXTURE_2D, 0);
 	//glActiveTexture(0);
 
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, m_textureI1);
+	//glGetTexImage(GL_TEXTURE_2D, 1, GL_RGBA, GL_UNSIGNED_BYTE, col2.data);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//glActiveTexture(0);
+
+	//cv::Mat col2p = cv::Mat(m_texture_height / 1, m_texture_width / 1, CV_8UC4);
+	//cv::pyrUp(col2, col2p);
+
 	////theErr = glGetError();
 	//   
-	//cv::imshow("colo1", col);
+	//cv::imshow("colo1", col1 - col2p);
+
+	//cv::Mat lap = col1 - col2p;
+
+	//cv::Mat output = cv::Mat(m_texture_height / 1, m_texture_width / 1, CV_8UC4);
+	//cv::multiply(lap, col1, output);
+
+	//cv::imshow("coclcocl", output);
+
+
+	//glActiveTexture(GL_TEXTURE1);
+	//glBindTexture(GL_TEXTURE_2D, m_textureI1);
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_texture_width, m_texture_height, GL_RGBA, GL_UNSIGNED_BYTE, lap.data);
+	//glGenerateMipmap(GL_TEXTURE_2D);
+
+	////theErr = glGetError(); 
+	//glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+
+
+
+	if (firstFrame)
+	{
+
+		glCopyImageSubData(m_textureI1, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_textureI0, GL_TEXTURE_2D, 0, 0, 0, 0,
+			m_texture_width, m_texture_height, 1);
+		firstFrame = false;
+
+		//I1im.copyTo(I0im);
+	}
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_textureI0);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 	//cv::Mat col0 = cv::Mat(m_texture_height / 2, m_texture_width / 2, CV_8UC4);
 	//// 
@@ -351,8 +392,6 @@ void gFlow::setTexture(float * imageArray)
 
 
 }
-
-
    
 GLuint gFlow::createTexture(GLuint ID, GLenum target, int levels, int w, int h, int d, GLuint internalformat)
 {
@@ -457,14 +496,14 @@ void gFlow::allocateBuffers()
 }  
     
           
-void gFlow::allocateTextures(bool useInfrared)
+void gFlow::allocateTextures(int nChn)
 {
 	m_numberHPLevels = GLHelper::numberOfLevels(glm::ivec3(m_texture_width, m_texture_height, 1));
 	// WITH OR WITHOUT THIS HINT, MIP MAPPING (at least the rg32f images) IS THE EXACT SAME AS cv::resize cv::INTER_AREA
 	//glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
 
 	// the incoming texture should have been pre-mipmaped, but all other textures need to be allocated and wiped each frame
-	if (useInfrared)
+	if (nChn == 1)
 	{
 		m_textureI0 = createTexture(m_textureI0, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_R32F);
 		m_textureI1 = createTexture(m_textureI1, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_R32F);
@@ -474,8 +513,7 @@ void gFlow::allocateTextures(bool useInfrared)
 		m_textureI0 = createTexture(m_textureI0, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RGBA8);
 		m_textureI1 = createTexture(m_textureI1, GL_TEXTURE_2D, m_numLevels, m_texture_width, m_texture_height, 0, GL_RGBA8);
 	}
-
-
+	
 	m_textureI0_prod_xx_yy_xy_aux = createTexture(m_textureI0_prod_xx_yy_xy_aux, GL_TEXTURE_2D, m_numLevels, m_texture_width / m_patch_stride, m_texture_height , 0, GL_RGBA32F);
 	m_textureI0_sum_x_y_aux = createTexture(m_textureI0_sum_x_y_aux, GL_TEXTURE_2D, m_numLevels, m_texture_width / m_patch_stride, m_texture_height, 0, GL_RG32F);
 
@@ -624,6 +662,8 @@ void gFlow::computeSobel(int level, bool useInfrared)
 	}
 	else
 	{
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_textureI0);
 		glBindImageTexture(0, m_textureI0, level, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA8);
 		glUniform1i(m_imageType_cov_ID, 0); // image type 0 = color rgba8ui 
 	}
@@ -1842,7 +1882,7 @@ bool gFlow::calc(bool useInfrared)
 		 
 		densification(level);
 
-		medianFilter(level);
+		//medianFilter(level);
 
 		//if (level == 0)
 		//{
@@ -1850,11 +1890,11 @@ bool gFlow::calc(bool useInfrared)
 		//}
 
 
-		if (level > 1)
-		{
-			variRef(level);  // mine, broken ish  slower   
+		//if (level > 1)
+		//{
+		//	variRef(level);  // mine, broken ish  slower   
 
-		}
+		//}
 
 
 		  

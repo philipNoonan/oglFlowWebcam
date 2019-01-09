@@ -46,9 +46,9 @@ void searchForMedia()
 	videosFromFile.resize(0);
 	imagesFromFile.resize(0);
 
-	cv::String pathVideos("videos/*.avi"); //select only wmv
+	//cv::String pathVideos("videos/*.avi"); //select only wmv
 
-	//cv::String pathVideos("videos/*.wmv"); //select only wmv
+	cv::String pathVideos("videos/*.mkv"); //select only wmv
 	//cv::String pathVideos("videos/*.mp4"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
@@ -104,7 +104,7 @@ void resetFlowSize()
 	//gflow.clearTexturesAndBuffers();
 	gflow.setNumLevels(colorWidth);
 	gflow.setTextureParameters(colorWidth, colorHeight);
-	gflow.allocateTextures(false);
+	gflow.allocateTextures(col.channels());
 	gflow.allocateBuffers();
 	gflow.allocateOffscreenRendering();
 
@@ -168,7 +168,7 @@ int main(int, char**)
 
 	gflow.setNumLevels(colorWidth);
 	gflow.setTextureParameters(colorWidth, colorHeight);
-	gflow.allocateTextures(false);
+	gflow.allocateTextures(col.channels());
 
 	gflow.allocateBuffers();
 	gflow.allocateOffscreenRendering();
@@ -216,7 +216,7 @@ int main(int, char**)
 			{
 				cv::Mat tempCol;
 				videosFromFile[videoNumber].set(CV_CAP_PROP_POS_FRAMES, videoFrameNumber);
-				videoFrameNumber+=4;
+				videoFrameNumber++;
 				if (videoFrameNumber > videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_COUNT) - 50)
 				{
 					gflow.wipeFlow();
@@ -229,7 +229,8 @@ int main(int, char**)
 				tempCol.copyTo(col);
 				newFrameReady = true;
 
-
+				cv::imshow("waitein", cv::Mat(10, 10, CV_8UC4));
+				cv::waitKey(30);
 				//col = fGrabber.framesVideo(newFrameReady);
 
 
@@ -247,10 +248,13 @@ int main(int, char**)
 				{
 					gflow.clearPoints();
 				}
-				cv::imshow("sdf", tempCol);
-				cv::waitKey(20);
+				//cv::imshow("sdf", tempCol);
+				//cv::waitKey(20);
 
-				tempCol.copyTo(col);
+				cv::cvtColor(tempCol, col, CV_RGB2RGBA, 4);
+
+
+				//tempCol.copyTo(col);
 				newFrameReady = true;
 			}
 			else if (useWebcamFlag)
@@ -266,17 +270,17 @@ int main(int, char**)
 		if (newFrameReady)
 		{
 			newFrameReady = false;
-			cv::cvtColor(col, newcol, CV_RGB2RGBA, 4);
+			//cv::cvtColor(col, newcol, CV_RGB2RGBA, 4);
 
-			gflow.setTexture(newcol.data);
+			gflow.setTexture(col.data, col.channels());
 
 
 
 			gflow.calc(false);
 			//gflow.track();
 
-			gflow.buildQuadtree();
-			grender.setQuadlistCount(gflow.getQuadlistCount());
+			//gflow.buildQuadtree();
+			//grender.setQuadlistCount(gflow.getQuadlistCount());
 
 			grender.setFlowTexture(gflow.getFlowTexture());
 
@@ -355,7 +359,9 @@ int main(int, char**)
 				glEnable(GL_DEPTH_TEST);
 
 			grender.Render(false);
-
+			//cv::Mat blankIm = cv::Mat(100, 100, CV_8UC4);
+			//cv::imshow("blank", blankIm);
+			//cv::waitKey(30);
 
 			if (grender.showImgui())
 			{
@@ -365,7 +371,7 @@ int main(int, char**)
 
 				float arr[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 				arr[0] = gflow.getTimeElapsed();
-				arr[8] = arr[0] + arr[1] + arr[2] + arr[3] + arr[4] + arr[5] + arr[6] + arr[7];
+				arr[8] = arr[0];// +arr[1] + arr[2] + arr[3] + arr[4] + arr[5] + arr[6] + arr[7];
 				GLint total_mem_kb = 0;
 				glGetIntegerv(GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX,
 					&total_mem_kb);
