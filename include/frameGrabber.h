@@ -83,13 +83,13 @@ private:
 	//long long mFrameNameCounter;
 	//bool mThreadOpened;
 	cv::VideoCapture m_cap;
-	cv::Mat mBuffer = cv::Mat(960, 540, CV_8UC3);
-	cv::Mat outbuf = cv::Mat(960, 540, CV_8UC3);;
+	cv::Mat mBuffer = cv::Mat(1920, 1080, CV_8UC3);
+	cv::Mat outbuf = cv::Mat(1920, 1080, CV_8UC3);;
 	//std::mutex mBufferMutex;
 	//std::atomic<bool> mCloseThread;
 	//std::thread mThread;
-	int m_colorWidth = 960;
-	int m_colorHeight = 540;
+	int m_colorWidth = 1920;
+	int m_colorHeight = 1080;
 	void captureLoop();
 	void captureVideoFrameLoop();
 	Status m_status = STOPPED;

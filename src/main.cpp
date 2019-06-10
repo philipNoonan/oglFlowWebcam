@@ -24,11 +24,11 @@ void gRenderInit()
 
 void preLoadVideo(int vidNumber)
 {
-	int vidWidth = videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_WIDTH);
-	int vidHeight = videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_HEIGHT);
+	int vidWidth = videosFromFile[vidNumber].get(cv::CAP_PROP_FRAME_WIDTH);
+	int vidHeight = videosFromFile[vidNumber].get(cv::CAP_PROP_FRAME_HEIGHT);
 
 	int frameNumber = 0;
-	videoBuffer.resize(videosFromFile[vidNumber].get(CV_CAP_PROP_FRAME_COUNT) - 50);
+	videoBuffer.resize(videosFromFile[vidNumber].get(cv::CAP_PROP_FRAME_COUNT) - 50);
 
 
 	while (frameNumber < videoBuffer.size())
@@ -47,9 +47,11 @@ void searchForMedia()
 	imagesFromFile.resize(0);
 
 	//cv::String pathVideos("videos/*.avi"); //select only wmv
+	cv::String pathVideos("videos/*.wmv"); //select only wmv
 
-	cv::String pathVideos("videos/*.mkv"); //select only wmv
+	//cv::String pathVideos("videos/*.mkv"); //select only wmv
 	//cv::String pathVideos("videos/*.mp4"); //select only mkv
+	//cv::String pathVideos("videos/*.MP4"); //select only mkv
 
 	std::vector<cv::String> fnVideos;
 	cv::glob(pathVideos, fnVideos, true); // recurse
@@ -61,7 +63,7 @@ void searchForMedia()
 		std::cout << fnVideos[k] << std::endl;
 
 		cv::VideoCapture cap(fnVideos[k]);
-		cap.set(CV_CAP_PROP_BUFFERSIZE, 5);
+		cap.set(cv::CAP_PROP_BUFFERSIZE, 5);
 		if (!cap.isOpened())
 		{
 			std::cout << "cannot open video file" << std::endl;
@@ -71,7 +73,7 @@ void searchForMedia()
 		videosFromFile.push_back(cap);
 	}
 
-	outWriter.open("output/outputWiM.wmv", static_cast<int>(videosFromFile[0].get(CV_CAP_PROP_FOURCC)), 30, cv::Size(806, 540), true);
+	outWriter.open("output/outputWiM.wmv", static_cast<int>(videosFromFile[0].get(cv::CAP_PROP_FOURCC)), 30, cv::Size(806, 540), true);
 	if (!outWriter.isOpened())
 	{
 		std::cout << "Could not open the output video for write" << std::endl;
@@ -184,6 +186,10 @@ int main(int, char**)
 	gflood.compileAndLinkShader();
 	gflood.setLocations();
 
+	gflood.setTextureParameters(colorWidth, colorHeight); // rename me to texture width and height
+	gflood.allocateTextures();
+	gflood.allocateBuffers();
+
 
 	double lastTime = glfwGetTime();
 	// Main loop
@@ -214,10 +220,10 @@ int main(int, char**)
 
 			if (useVideosFlag) // send me to a seperate thread
 			{
-				cv::Mat tempCol;
-				videosFromFile[videoNumber].set(CV_CAP_PROP_POS_FRAMES, videoFrameNumber);
+				cv::Mat tempCol, tempCol4;
+				videosFromFile[videoNumber].set(cv::CAP_PROP_POS_FRAMES, videoFrameNumber);
 				videoFrameNumber++;
-				if (videoFrameNumber > videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_COUNT) - 50)
+				if (videoFrameNumber > videosFromFile[videoNumber].get(cv::CAP_PROP_FRAME_COUNT) - 50)
 				{
 					gflow.wipeFlow();
 					gflow.firstFrame = true;
@@ -226,11 +232,13 @@ int main(int, char**)
 
 				videosFromFile[videoNumber] >> tempCol;
 
-				tempCol.copyTo(col);
+				cv::cvtColor(tempCol, tempCol4, cv::COLOR_RGB2RGBA);
+				tempCol4.copyTo(col);
+
 				newFrameReady = true;
 
-				cv::imshow("waitein", cv::Mat(10, 10, CV_8UC4));
-				cv::waitKey(30);
+				//cv::imshow("waitein", cv::Mat(10, 10, CV_8UC4));
+				//cv::waitKey(30);
 				//col = fGrabber.framesVideo(newFrameReady);
 
 
@@ -251,7 +259,7 @@ int main(int, char**)
 				//cv::imshow("sdf", tempCol);
 				//cv::waitKey(20);
 
-				cv::cvtColor(tempCol, col, CV_RGB2RGBA, 4);
+				cv::cvtColor(tempCol, col, cv::COLOR_RGB2RGBA, 4);
 
 
 				//tempCol.copyTo(col);
@@ -264,6 +272,8 @@ int main(int, char**)
 				//std::cout << " xx " << colorHeight << " " << colorWidth << std::endl;
 
 				//cap >> col;
+				//cv::imshow("col", col);
+				//cv::waitKey(1);
 			}
 		}
 
@@ -278,9 +288,12 @@ int main(int, char**)
 
 			gflow.calc(false);
 			//gflow.track();
+			if (showQuadsFlag)
+			{
+				gflow.buildQuadtree();
+				grender.setQuadlistCount(gflow.getQuadlistCount());
 
-			//gflow.buildQuadtree();
-			//grender.setQuadlistCount(gflow.getQuadlistCount());
+			}
 
 			grender.setFlowTexture(gflow.getFlowTexture());
 
@@ -309,25 +322,33 @@ int main(int, char**)
 			//cv::Mat hsv_split[3], hsv;
 			//cv::Mat rgb;
 			//cv::cartToPolar(tofl[0], tofl[1], mag, ang, true);
-			////cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
+			//cv::normalize(mag, mag, 0, 1, cv::NORM_MINMAX);
 			//hsv_split[0] = ang;
-			//hsv_split[1] = mag * 0.04;
+			//hsv_split[1] = mag;
 			//hsv_split[2] = cv::Mat::ones(ang.size(), ang.type());
 			//cv::merge(hsv_split, 3, hsv);
 			//cv::cvtColor(hsv, rgb, cv::COLOR_HSV2BGR);
+			////cv::cvtColor(cv::Mat(cv::Scalar(1.0,1.0,1.0) - rgb), outImage, cv::COLOR_RGB2RGBA);
 
+			////cv::Mat outrgb, outmix;
+			////rgb.convertTo(outrgb, CV_8UC4, 255);
+			////cv::addWeighted(outrgb, 0.7, col, 0.3, 1.0, outmix);
+			//rgb.convertTo(rgb, CV_8UC3, 255.0);
 
-			//cv::Mat outrgb, outmix;
-			//rgb.convertTo(outrgb, CV_8UC4, 255);
-			//cv::addWeighted(outrgb, 0.7, col, 0.3, 1.0, outmix);
-			//cv::imshow("totflowrgb", outrgb);
+			//cv::Mat outImage = cv::Scalar(255.0, 255.0, 255.0) - rgb;
+			//cv::imshow("totflowrgb", outImage);
 
+			//std::vector<int> compression_params;
+			//compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+			//compression_params.push_back(0);
+
+			//std::ostringstream outFileName;
+			//outFileName << videoFrameNumber << "_boats2.png";
+			//cv::imwrite(outFileName.str(), outImage, compression_params);
 
 			//outWriter << outmix;
 			gflood.setFloodInitialRGBTexture(col.data, colorWidth, colorHeight, 3);
-			gflood.setTextureParameters(colorWidth, colorHeight); // rename me to texture width and height
-			gflood.allocateTextures();
-			gflood.allocateBuffers();
+
 
 			if (showDistanceFlag)
 			{
@@ -451,8 +472,8 @@ int main(int, char**)
 							useImagesFlag = 0;
 							useVideosFlag = 1;
 							changedSource = 1;
-							colorWidth = videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_WIDTH);
-							colorHeight = videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_HEIGHT);
+							colorWidth = videosFromFile[videoNumber].get(cv::CAP_PROP_FRAME_WIDTH);
+							colorHeight = videosFromFile[videoNumber].get(cv::CAP_PROP_FRAME_HEIGHT);
 
 							//// WORK OUT WHAT HAPPENS WHEN YOU SWITCH SOURCE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 							//fGrabber.setVideoCaptureTarget(videosFromFile[videoNumber]);
@@ -470,8 +491,8 @@ int main(int, char**)
 						{
 							fGrabber.setVideoCaptureTarget(videosFromFile[videoNumber]);
 							changedSource = 1;  
-							colorWidth = videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_WIDTH);
-							colorHeight = videosFromFile[videoNumber].get(CV_CAP_PROP_FRAME_HEIGHT);
+							colorWidth = videosFromFile[videoNumber].get(cv::CAP_PROP_FRAME_WIDTH);
+							colorHeight = videosFromFile[videoNumber].get(cv::CAP_PROP_FRAME_HEIGHT);
 						}
 					}
 				}

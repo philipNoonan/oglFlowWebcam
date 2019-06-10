@@ -121,6 +121,7 @@ void gFlow::setLocations()
 	m_hpBuilderID = glGetSubroutineIndex(hpQuadtreeProg.getHandle(), GL_COMPUTE_SHADER, "hpBuilder");
 
 	m_hpLevelID = glGetUniformLocation(hpQuadtreeProg.getHandle(), "hpLevel");
+	m_quadThreshID = glGetUniformLocation(hpQuadtreeProg.getHandle(), "quadThresh");
 
 	m_subroutine_hpQuadlistID = glGetSubroutineUniformLocation(hpQuadListProg.getHandle(), GL_COMPUTE_SHADER, "quadlistSubroutine");
 	m_traverseHPLevelID = glGetSubroutineIndex(hpQuadListProg.getHandle(), GL_COMPUTE_SHADER, "traverseHPLevel");
@@ -151,8 +152,8 @@ void gFlow::setLocations()
 
 	/* Use separate variational refinement instances for different scales to avoid repeated memory allocation: */
 	int max_possible_scales = 10;
-	for (int i = 0; i < max_possible_scales; i++)
-		variational_refinement_processors.push_back(cv::optflow::createVariationalFlowRefinement());
+	//for (int i = 0; i < max_possible_scales; i++)
+//		variational_refinement_processors.push_back(cv::optflow::createVariationalFlowRefinement());
 
 	
 	  
@@ -219,7 +220,6 @@ void gFlow::setTexture(unsigned char * imageArray, int nChn)
 
 	//theErr = glGetError(); 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS); 
-
 
 
 
@@ -498,6 +498,9 @@ void gFlow::allocateBuffers()
           
 void gFlow::allocateTextures(int nChn)
 {
+	zeroValues.resize(m_texture_width * m_texture_height * 4, 0);
+	oneValues.resize(m_texture_width * m_texture_height * 4, 1);
+
 	m_numberHPLevels = GLHelper::numberOfLevels(glm::ivec3(m_texture_width, m_texture_height, 1));
 	// WITH OR WITHOUT THIS HINT, MIP MAPPING (at least the rg32f images) IS THE EXACT SAME AS cv::resize cv::INTER_AREA
 	//glHint(GL_GENERATE_MIPMAP_HINT, GL_NICEST);
@@ -1405,10 +1408,10 @@ void gFlow::variationalRefinement(int level)
 	//glActiveTexture(0);  
 
 	cv::Mat I0C1;
-	cv::cvtColor(I0imq, I0C1, CV_BGRA2GRAY);
+	cv::cvtColor(I0imq, I0C1, cv::COLOR_BGRA2GRAY);
 	
 	cv::Mat I1C1;
-	cv::cvtColor(I1imq, I1C1, CV_BGRA2GRAY);
+	cv::cvtColor(I1imq, I1C1, cv::COLOR_BGRA2GRAY);
 
 	cv::Mat sxx3 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
 	cv::Mat sxx4 = cv::Mat(m_texture_height >> level, m_texture_width >> level, CV_32FC2);
@@ -1425,8 +1428,8 @@ void gFlow::variationalRefinement(int level)
 	cv::split(sxx3, image2);  
 
 	 
-	variational_refinement_processors[0]->calcUV(I0C1, I1C1,
-		image2[0], image2[1]);
+	//variational_refinement_processors[0]->calcUV(I0C1, I1C1,
+	//	image2[0], image2[1]);
 
 	//cv::merge(image2, 2, sxx3);
 
@@ -1864,25 +1867,25 @@ bool gFlow::calc(bool useInfrared)
 	  
 	double totalTime = 0;
 
-	for (int level = m_numLevels - 1; level > -1; level--) 
-	{   
+	for (int level = m_numLevels - 1; level > -1; level--)
+	{
 
 		//glBindTexture(GL_TEXTURE_2D, m_textureS_x_y);
 		//glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, (m_texture_width / m_patch_stride) >> level,( m_texture_height / m_patch_stride) >> level, GL_RG, GL_FLOAT, zeroValues.data());
-		 
-		makePatches(level); 
-		 
-		   
-		    
 
-		patchInverseSearch(level, useInfrared);   
+		makePatches(level);
 
-		    
 
-		 
+
+
+		patchInverseSearch(level, useInfrared);
+
+
+
+
 		densification(level);
 
-		//medianFilter(level);
+		medianFilter(level);
 
 		//if (level == 0)
 		//{
@@ -1897,8 +1900,8 @@ bool gFlow::calc(bool useInfrared)
 		//}
 
 
-		  
-		//if (level > 2) // dont need to densify finest level?   
+
+		//if (level > -1) // dont need to densify finest level?   
 		//{
 		//	variationalRefinement(level); // opencv, slow
 		//}
@@ -1907,15 +1910,23 @@ bool gFlow::calc(bool useInfrared)
 
 		//	//variRef(level);  // mine, broken ish  slower   
 
-		//	//cv::Mat ssdMat = cv::Mat((m_texture_height >> level) / m_patch_stride, (m_texture_width >> level) / m_patch_stride, CV_32FC1);
+		//	//
+		if (level == 0)
+		{
+			cv::Mat ssdMat = cv::Mat((m_texture_height >> level) / m_patch_stride, (m_texture_width >> level) / m_patch_stride, CV_32FC1);
 
-		//	//glActiveTexture(GL_TEXTURE0);
-		//	//glBindTexture(GL_TEXTURE_2D, m_textureTest);
-		//	//glGetTexImage(GL_TEXTURE_2D, level, GL_RED, GL_FLOAT, ssdMat.data);
-		//	//glBindTexture(GL_TEXTURE_2D, 0);
-		//	//glActiveTexture(0);
-		//	//cv::imshow("ssd", ssdMat);
-		//	//cv::waitKey(1);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, m_textureTest);
+			glGetTexImage(GL_TEXTURE_2D, level, GL_RED, GL_FLOAT, ssdMat.data);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glActiveTexture(0);
+
+			cv::namedWindow("ssd", WINDOW_NORMAL);
+			cv::imshow("ssd", ssdMat);
+			cv::waitKey(1);
+		}
+
 
 
 
@@ -2226,6 +2237,9 @@ void gFlow::buildQuadtree()
 	glBindTexture(GL_TEXTURE_2D, m_textureI0_grad_x_y);
 
 	glm::uvec3 nthreads = GLHelper::divup(glm::uvec3((1 << m_numberHPLevels), (1 << m_numberHPLevels), 1), glm::uvec3(8,8,1));
+
+	glUniform1i(m_quadThreshID, m_valA);
+
 
 	glUniformSubroutinesuiv(GL_COMPUTE_SHADER, 1, &m_hpDiscriminatorID);
 	glDispatchCompute(nthreads.x, nthreads.y, nthreads.z);

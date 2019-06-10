@@ -81,11 +81,11 @@ void FrameGrabber::captureVideoFrameLoop()
 {
 	cv::Mat cvMat;
 
-	m_cap.set(CV_CAP_PROP_POS_FRAMES, m_videoFrameNumber);
+	m_cap.set(cv::CAP_PROP_POS_FRAMES, m_videoFrameNumber);
 	m_videoFrameNumber++;
 	//std::memcpy()
 
-	if (m_videoFrameNumber > m_cap.get(CV_CAP_PROP_FRAME_COUNT) - 50)
+	if (m_videoFrameNumber > m_cap.get(cv::CAP_PROP_FRAME_COUNT) - 50)
 	{
 		m_videoFrameNumber = 0;
 	}
@@ -104,11 +104,11 @@ void FrameGrabber::captureLoop()
 
 	if (!m_cap.isOpened())
 	{
-		m_cap.open(2);
+		m_cap.open(3, cv::CAP_DSHOW);
 	}
-	m_cap.set(CV_CAP_PROP_FRAME_WIDTH, m_colorWidth);
-	m_cap.set(CV_CAP_PROP_FRAME_HEIGHT, m_colorHeight);
-
+	m_cap.set(cv::CAP_PROP_FRAME_WIDTH, 1920);
+	m_cap.set(cv::CAP_PROP_FRAME_HEIGHT, 1080);
+	//m_cap.set(cv::CAP_PROP_EXPOSURE, 0.001);
 	cv::Mat cvMat;
 
 

@@ -104,7 +104,7 @@ vec4 fromQuadlist()
 	// uint yPos = (octlist & 8372224) >> 14;
 	// uint zPos = (octlist & 16352) >> 5;
 	// uint lod = (octlist & 31);
-	/*
+	
 	uint xPos = uint(quadlist.x);
 	uint yPos = uint(quadlist.y);
 	uint lod = uint(quadlist.z);
@@ -123,10 +123,10 @@ vec4 fromQuadlist()
 
 	// 1920.0f here is the current window size
 	//gl_PointSize = max(int(quadSideLength * (1920.0/imSize.x)) - 1, 1);
-	gl_PointSize = quadSideLength * (1280.0/imSize.x);
+	gl_PointSize = quadSideLength * (1640.0/imSize.x); // some number scale, this is a hack
 
 	return vec4(pos.x, -pos.y, pos.z, pos.w);
-	*/
+	
 
 	float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u); // u is just the type qualifer, like f, i think
     float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u); 

@@ -79,6 +79,7 @@ private:
 	/* uniforms */
 	GLuint m_jfaInitID;
 	GLuint m_jfaUpdateID;
+	GLuint m_jfaFastUpdateID;
 	GLuint m_jumpID;
 	GLuint m_applyFilterID;
 	GLuint m_edgeThresholdID;

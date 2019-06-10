@@ -585,9 +585,9 @@ void gRender::renderLiveVideoWindow(bool useInfrared)
 			//glDrawArrays(GL_POINTS, 0, 2);
 			glUniform1f(m_zOffID, -0.2f);
 
-			glDrawArrays(GL_TRIANGLES, 0, 6);
+			//glDrawArrays(GL_TRIANGLES, 0, 6);
 
-			//glDrawArrays(GL_POINTS, 0, m_quadlistCount);
+			glDrawArrays(GL_POINTS, 0, m_quadlistCount);
 
 
 		}

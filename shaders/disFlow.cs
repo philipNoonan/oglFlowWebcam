@@ -7,7 +7,7 @@ layout(local_size_x = 4, local_size_y = 4) in;
 layout(binding = 0, rg32f) uniform image2D im_grad_I0_x_y;
 layout(binding = 1, rg32f) uniform image2D flow_texture_x_y;
 layout(binding = 2, rg32f) uniform image2D previous_layer_flow_texture_x_y;
-layout(binding = 3, rgba8ui) uniform uimage2D test_texture;
+layout(binding = 3, r32f) uniform image2D test_texture;
 
   //  layout(binding = 7, rgba32f) uniform image2D im_prod_I0_xx_yy_xy_aux;
 
@@ -296,13 +296,15 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 
   // initFlowXY =  textureLod(tex_flow_initial, vec2(xCoord, yCoord), level).xy;
 
+    initFlowXY.x = initFlowXY.x< 8 ? initFlowXY.x : 0;
+    initFlowXY.y = initFlowXY.y< 8 ? initFlowXY.y : 0;
+
     initFlowXY.x /= float(pow(2, level+1)); // dont need this if we are directly copying each mip map level rather than only top then mipmapping from top
     initFlowXY.y /= float(pow(2, level+1)); 
 
     
 
-    //initFlowXY.x = initFlowXY.x < 8 ? initFlowXY.x : 0;
-    //initFlowXY.y = initFlowXY.y < 8 ? initFlowXY.y : 0;
+
 
     float xCoord_init;
     float yCoord_init;
@@ -344,6 +346,7 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
         {
             // reading from the previous layer enables linear inter for free
             prevFlowXY = 2.0 * textureLod(tex_flow_previous, vec2(xCoord, yCoord), level + 1).xy;
+
             //imageStore(test_texture, ivec2((gl_GlobalInvocationID.x* 4 + psz2), (gl_GlobalInvocationID.y* 4 + psz2)), vec4((initFlowXY.x - prevFlowXY.x)));
         }
         else
@@ -406,6 +409,7 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //            {
 //                float xCoord_dir0 = (((float(gl_GlobalInvocationID.x) * 4.0 + dir + Ux + float(i))) / (float(imSize.x)));
 //                float yCoord_dir0 = (((float(gl_GlobalInvocationID.y) * 4.0 + Uy + float(j))) / (float(imSize.y)));
+
 //                if (imageType == 0)
 //                {
 //                    y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir0, yCoord_dir0), level).x;
@@ -438,6 +442,7 @@ float yCoord = (( (float(gl_GlobalInvocationID.y) * 4.0 + float(psz2))) / ( floa
 //    {
 //            float xCoord_dir1 = (((float(gl_GlobalInvocationID.x) * 4.0 + Ux + float(i))) / (float(imSize.x)));
 //            float yCoord_dir1 = (((float(gl_GlobalInvocationID.y) * 4.0 + dir + Uy + float(j))) / (float(imSize.y)));
+
 //        if (imageType == 0)
 //        {
 //            y_data[i][j] = textureLod(tex_I1, vec2(xCoord_dir1, yCoord_dir1), level).x;
@@ -492,7 +497,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
 //imageStore(test_texture, pix_sparse, vec4(min_SSD));
 
 
-        for (int t = 0; t < level + 2; t++) // CHANE+GE ME TO ITER!!!
+        for (int t = 0; t < level + 3; t++) // CHANE+GE ME TO ITER!!!
         {
             barrier();
 
@@ -528,7 +533,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
             cur_Uy -= dy;
 
             /* Break when patch distance stops decreasing */
-            if (SSD >= prev_SSD || prev_SSD < 0.1)
+            if (SSD >= prev_SSD || prev_SSD < 0.01)
             {
                     break;
             }
@@ -541,7 +546,7 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
                      * (more than patch size) then we don't use it. Noticeably improves the robustness.
                      */
         vec2 theVec = vec2(cur_Ux - Ux, cur_Uy - Uy);
-        if (length(theVec) < 8)
+        if (length(theVec) < 8.0)
         {
             imageStore(im_S_x_y, pix_sparse, vec4(cur_Ux, cur_Uy, 0, 0)); 
         }
@@ -551,11 +556,11 @@ float detH = inputProd.x * inputProd.y - inputProd.z * inputProd.z;
         }
         if (prev_SSD > 0.1)
         {
-           //imageStore(im_S_x_y, pix_sparse, vec4(Ux, Uy, 0, 0));
+           imageStore(im_S_x_y, pix_sparse, vec4(cur_Ux/2.0, cur_Uy/2.0, 0, 0));
 
         }
         
-                  // imageStore(test_texture, pix_sparse, vec4(prev_SSD));
+        imageStore(test_texture, pix_sparse, vec4(prev_SSD));
 
     } // loop
 }

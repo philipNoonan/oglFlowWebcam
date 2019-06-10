@@ -86,6 +86,71 @@ void DTNN(const in vec2 off)
     }
 }
 
+
+
+shared vec4 dataRows[960][3];
+
+
+void DTNN_shared(const in ivec2 off)
+{
+    vec2 dtnn_cur = vec2(dataRows[off.x][off.y]);
+    // THIS WAS A PAIN AND IS PROBABLY A HACK FIX. DTNN_CURR WOULD RETURN ZERO VALUES AND MESS EVERYTHING UP LEADING TO A 0,0 POINT PERSISTING
+    if (dtnn_cur != vec2(0) && off != vec2(0))
+    {
+        vec2 ddxy = dtnn_cur - pix;
+        float dcur = LENGTH_SQ(ddxy);
+        if (dcur < dmin)
+        {
+            dmin = dcur;
+            dtnn = dtnn_cur;
+        }
+    }
+}
+
+
+
+
+subroutine(launchSubroutine)
+void jfaFastUpdate()
+{
+    // the idea here is that each pixel is swept though the image and uses 3x repeat memory reads of the same pixel, this can be slow, esspecialy on large step sizes where texture caches are poorly utilised
+    // if we first sweep through 3 rows per y axis can we load all rows into a shared memory array.
+    // after barrier(), each local invocation then outputs the standard jfa from the shared memory arrays
+
+    pix = vec2(gl_GlobalInvocationID.xy);
+
+    //ivec2 pos = ivec2(gl_LocalInvocationID.xy);
+
+    for (int i = 0; i < 960; i++)
+    {
+        dataRows[i][0] = imageLoad(im_dtnn_0, ivec2(i, pix.y - jump));
+        dataRows[i][1] = imageLoad(im_dtnn_0, ivec2(i, pix.y));
+        dataRows[i][2] = imageLoad(im_dtnn_0, ivec2(i, pix.y + jump));
+    }
+
+    barrier();
+
+    for (int i = 0; i < 960; i++)
+    {
+        dtnn = vec2(dataRows[i][1]);
+
+        vec2 ddxy = dtnn - vec2(i, pix.y);
+        dmin = LENGTH_SQ(ddxy);
+
+        DTNN(ivec2(i - jump, 0));   DTNN(ivec2(i, 0));      DTNN(ivec2(i + jump, 0));
+
+        DTNN(ivec2(i - jump, 1));                           DTNN(ivec2(i + jump, 1));
+
+        DTNN(ivec2(i - jump, 2));   DTNN(ivec2(i, 2));      DTNN(ivec2(i + jump, 2));
+
+        imageStore(im_dtnn_1, ivec2(i, pix.y), vec4(dtnn.x, dtnn.y, 0, 0));
+
+    }
+
+
+
+}
+
 subroutine(launchSubroutine)
 void jumpFloodAlgorithmUpdate()
 {
@@ -123,7 +188,7 @@ void getColorFromRGB()
 
     float distCol = distance(pix, jfa);
 
-    imageStore(outImage, ivec2(pix), vec4(distCol.xxx / 100, 1.0));
+    imageStore(outImage, ivec2(pix), vec4(distCol.xxx / 100.0f, 1.0));
 
 }
 

@@ -159,7 +159,7 @@ private:
 	void setVariationalRefinementDelta(float val) { variational_refinement_delta = val; }
 	float getVariationalRefinementGamma() const { return variational_refinement_gamma; }
 	void setVariationalRefinementGamma(float val) { variational_refinement_gamma = val; }
-	std::vector<cv::Ptr<cv::optflow::VariationalRefinement> > variational_refinement_processors;
+	//std::vector<cv::Ptr<cv::optflow::VariationalRefinement> > variational_refinement_processors;
 
 	GLuint timeQuery[1];
 	double m_timeElapsed = 0.0;
@@ -226,6 +226,7 @@ private:
 	GLuint m_cutoffID;
 
 	GLuint m_hpLevelID;
+	GLuint m_quadThreshID;
 
 	// std dev
 	GLuint m_subroutine_stdDevID;
@@ -363,8 +364,8 @@ private:
 
 
 
-	std::vector<float> zeroValues = std::vector<float>(1920 * 1080 * 4, 0.0f);
-	std::vector<float> oneValues = std::vector<float>(1920 * 1080 * 2, 1.0f);
+	std::vector<float> zeroValues;// = std::vector<float>(1920 * 1080 * 4, 0.0f);
+	std::vector<float> oneValues;// = std::vector<float>(1920 * 1080 * 2, 1.0f);
 
 	std::vector<int> zeroValuesInt = std::vector<int>(1920 * 1080 * 4, 0);
 
